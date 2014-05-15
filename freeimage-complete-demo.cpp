@@ -1,4 +1,8 @@
 #include <iostream>
+#include <unistd.h>
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
 #include "FreeImage.h"
 
 #define WIDTH 800
@@ -7,10 +11,22 @@
 
 using namespace std;
 
-int main(){
+int main(int argc, char *argv[]){
+	int bpp = BPP;
+	int oc;
+	while((oc = getopt(argc, argv, "b:"))!=-1){ 
+		switch(oc){
+			case 'b':
+				bpp = atoi(optarg);
+				break;
+			default:
+				break;
+		}
+	}
+
 	FreeImage_Initialise();
 
-	FIBITMAP * bitmap = FreeImage_Allocate(WIDTH, HEIGHT, BPP);
+	FIBITMAP * bitmap = FreeImage_Allocate(WIDTH, HEIGHT, bpp);
 	RGBQUAD color;
 
 	if(!bitmap)
@@ -23,7 +39,11 @@ int main(){
 			FreeImage_SetPixelColor(bitmap, i, j, &color);
 		}
 	}
-	if( FreeImage_Save(FIF_PNG, bitmap, "complete_test_pixel.png", 0) )
+
+	char opng_name[60]; memset(opng_name, 0, sizeof(opng_name));
+	sprintf(opng_name, "complete_demo_%d.png", bpp);
+
+	if( FreeImage_Save(FIF_PNG, bitmap, opng_name, 0) )
 		cout << "Image Successfully Saved!" << endl;
 	FreeImage_DeInitialise();
 
