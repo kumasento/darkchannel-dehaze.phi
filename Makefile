@@ -16,3 +16,5 @@ freeimage-complete-test:
 freeimage-load-output-demo:
 	$(CC) $(INCLUDE) $(LIBS) freeimage-load-output-demo.cpp -o ./bin/freeimage-load-output-demo.o
 
+freeimage-imageinfo-demo:
+	$(CC) $(INCLUDE) $(LIBS) freeimage-imageinfo-demo.cpp -o ./bin/freeimage-imageinfo-demo.o
