@@ -1,7 +1,7 @@
 CC = g++ -Wall -O3 -fmessage-length=0
 
 FIVERSION = 3.15.4
-INCLUDE = -I./FreeImageLib/
+INCLUDE = -I./FreeImageLib/ -I./
 LIBS = -L./FreeImageLib/ -lfreeimage -lfreeimage-$(FIVERSION)
 
 freeimage-test:
@@ -18,3 +18,7 @@ freeimage-load-output-demo:
 
 freeimage-imageinfo-demo:
 	$(CC) $(INCLUDE) $(LIBS) freeimage-imageinfo-demo.cpp -o ./bin/freeimage-imageinfo-demo.o
+
+
+dehaze-framework-1a:
+	$(CC) $(INCLUDE) $(LIBS) dehaze-framework-1a.cpp -o ./bin/dehaze-framework-1a.o
