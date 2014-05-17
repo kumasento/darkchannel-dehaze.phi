@@ -1,6 +1,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 #include <string>
 
 #include "FreeImage.h"
@@ -12,14 +14,18 @@ int main(int argc, char *argv[]){
 	int opt;
 	string file_name;
 	bool show_info = false;
+	int patch_size = 3;
 
-	while((opt = getopt(argc, argv, "f:i")) != -1){
+	while((opt = getopt(argc, argv, "f:iw:")) != -1){
 		switch(opt){
 			case 'f':
 				file_name = string(optarg);
 				break;
 			case 'i':
 				show_info = true;
+				break;
+			case 'w':
+				patch_size = atoi(optarg);
 				break;
 			default:
 				return 1;
@@ -36,6 +42,8 @@ int main(int argc, char *argv[]){
 										 hpixels.pixelsGetWidth());
 	}
 
+	hpixels.pixelsSetImagePatchSize( patch_size );
+	
 	//FIBITMAP *pic_bitmap = GenericLoader(file_name.c_str(), 0);
 
 	return 0;
