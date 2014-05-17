@@ -11,3 +11,8 @@ FIBITMAP * FIInterfaceGenericLoader(const char * file_name, int flag){
 	}
 	return NULL;
 }
+
+FIBITMAP * FIInterfaceGenerateBitmapEightBits(unsigned width, unsigned height){
+	FIBITMAP *bitmap = FreeImage_Allocate(width, height, 8);
+	return bitmap;
+}

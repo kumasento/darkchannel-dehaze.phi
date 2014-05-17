@@ -33,7 +33,9 @@ int main(int argc, char *argv[]){
 	}
 
 	hazy_pixels hpixels;
-	hpixels.pixelsLoader(file_name.c_str(), 0);
+	bool isLoaded = hpixels.pixelsLoader(file_name.c_str(), 0);
+	if(isLoaded)
+		cout <<"INFO: Loaded" << endl;
 	hpixels.pixelsSetImageBasicInfo();
 	
 	if(show_info){
@@ -43,6 +45,7 @@ int main(int argc, char *argv[]){
 	}
 
 	hpixels.pixelsSetImagePatchSize( patch_size );
+	hpixels.pixelsSaveImageDarkChannelBitmap();
 	
 	//FIBITMAP *pic_bitmap = GenericLoader(file_name.c_str(), 0);
 
