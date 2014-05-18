@@ -12,4 +12,11 @@ You can do it either on your machine or the server. The differences will be list
 
 Good luck
     
+###2014-05-17：
+The dark channel generator has been added, you could access to the dark channel value by function: `pixelsGetDarkChannelValueByCoord(x, y)`  
+The `patch_size` parameter could be assigned in commandline: `... -w [patch_size]`
+If you want to get the gray-scale picture of the dark channel, pls use the function:`pixelsSaveImageDarkChannelBitmap()`, and the file name would be `dark_channel_bitmap_[patch_size].png`
 
+Good luck
+
+Vincent
