@@ -22,3 +22,6 @@ freeimage-imageinfo-demo:
 
 dehaze-framework-1a:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-framework-1a.cpp -o ./bin/dehaze-framework-1a.o
+
+dehaze-dark-channel-gen:
+	$(CC) $(INCLUDE) $(LIBS) dehaze-dark-channel-gen.cpp -o ./bin/dehaze-dark-channel-gen.o
