@@ -28,3 +28,12 @@ It's command line parameter would be `dehaze-dark-channel-generator -f [file_nam
 Good luck
 
 Vincent
+
+
+###2014-05-18:
+You can generate the raw output by `pixelsSaveImageRawOriginalBitmap()`.
+
+But the result is not good enough. Pls wait for the next version.
+
+Good luck
+Vincent
