@@ -16,3 +16,8 @@ FIBITMAP * FIInterfaceGenerateBitmapEightBits(unsigned width, unsigned height){
 	FIBITMAP *bitmap = FreeImage_Allocate(width, height, 8);
 	return bitmap;
 }
+
+FIBITMAP * FIInterfaceGenerateBitmapColorBits(unsigned width, unsigned height){
+	FIBITMAP *bitmap = FreeImage_Allocate(width, height, 24);
+	return bitmap;
+}

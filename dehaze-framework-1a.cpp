@@ -45,8 +45,7 @@ int main(int argc, char *argv[]){
 	}
 
 	hpixels.pixelsSetImagePatchSize( patch_size );
-	hpixels.pixelsSaveImageDarkChannelBitmap();
-	
+	hpixels.pixelsSaveImageRawOriginalBitmap();
 	//FIBITMAP *pic_bitmap = GenericLoader(file_name.c_str(), 0);
 
 	return 0;

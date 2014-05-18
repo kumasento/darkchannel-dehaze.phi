@@ -1,4 +1,4 @@
-CC = g++ -Wall -O3 -fmessage-length=0
+CC = g++ -Wall -O3 -fmessage-length=0 -g
 
 FIVERSION = 3.15.4
 INCLUDE = -I./FreeImageLib/ -I./
