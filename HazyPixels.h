@@ -9,7 +9,9 @@
 #define DEF_MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define DEF_MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define DEF_XYtoIdx(x, y, l) ((x) * (l) + (y))
+#define DEF_XYZtoIdx(x, y, z, l, r) ((x) * (l) * (r) + (y) * (r) + (z))
 #define DEF_COLOR_VALUE_MAX 256
+#define DEF_FILE_NAME_LEN 60
 
 typedef unsigned char byte;
 
@@ -32,6 +34,7 @@ int hazy_pixel_cmp(const void* a, const void *b){
 class hazy_pixels{
 	public:
 		bool pixelsLoader(const char *file_name, int flag);
+		void pixelsUnLoader();
 
 		void pixelsSetImageBasicInfo();
 		void pixelsSetImagePatchSize(int patch_size){ this->hazy_patch_size = 
@@ -57,6 +60,8 @@ class hazy_pixels{
 
 		hazy_pixel *pixel_array;
 		rgbtuple *A_value;
+
+		char hazy_file_name[DEF_FILE_NAME_LEN];
 };
 
 bool hazy_pixels::pixelsLoader(const char *file_name, int flag){
@@ -65,7 +70,13 @@ bool hazy_pixels::pixelsLoader(const char *file_name, int flag){
 		this->hazy_bitmap_available = false;
 	else
 		this->hazy_bitmap_available = true;
+
+	strcpy(this->hazy_file_name, file_name);
 	return this->hazy_bitmap_available;
+}
+
+void hazy_pixels::pixelsUnLoader(){
+	FIInterfaceUnLoader(this->hazy_bitmap);
 }
 
 void hazy_pixels::pixelsSetImagePixelArray(){
@@ -190,14 +201,20 @@ void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
 }
 
 void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
-	char file_name[60]; memset(file_name, 0, sizeof(file_name));
-	sprintf(file_name, "transferred_%u.png", this->hazy_patch_size);
+	char out_file_name[60]; memset(out_file_name, 0, sizeof(out_file_name));
+	sprintf(out_file_name, "%s_transferred_%u.png", this->hazy_file_name,
+													this->hazy_patch_size);
 	
 	FIBITMAP *orBitmap = FIInterfaceGenerateBitmapColorBits(this->hazy_width,
 															this->hazy_height);
-
+	double *scaledAnsValueArray = (double*) malloc( sizeof(double) *
+													this->hazy_width *
+													this->hazy_height *
+													3);
+	
 	this->pixelsSetImageAtmosphereLightValue();
 
+	double tmp_Max[3] = { 1.0, 1.0, 1.0 };
 	for(unsigned x = 0; x < this->hazy_width; x++){
 		for(unsigned y = 0; y < this->hazy_height; y++){
 			double tValue = (double)pixelsGetOriginaltValueByCoord(x, y);
@@ -208,25 +225,50 @@ void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
 			byte Igreen = (byte) tuple->rgbgreen;
 			byte Iblue = (byte) tuple->rgbblue;
 
-			/*
-			printf("t: %f ", tValue);
-			printf("[%u %u %u]", Ired, Igreen, Iblue);
-			*/
+			//Change to [0,1]
+			double scaledAvalue[3] = {(double) this->A_value->rgbred/255,
+									  (double) this->A_value->rgbgreen/255,
+									  (double) this->A_value->rgbblue/255};
+			double scaledIvalue[3] = {(double) Ired/255,
+									  (double) Igreen/255,
+									  (double) Iblue/255};
+			double scaledAnsValue[3] = {0.0, 0.0, 0.0};
+			
+			for(int idx = 0; idx < 3; idx++){
+				scaledAnsValue[idx] = (scaledIvalue[idx] - scaledAvalue[idx]) / 
+									  tValue + 
+									  scaledAvalue[idx];
+				if(scaledAnsValue[idx] > tmp_Max[idx])
+					tmp_Max[idx] = scaledAnsValue[idx];
+			}
+
+			unsigned ArrayIdx = DEF_XYZtoIdx(x, y, 0, this->hazy_height, 3); 
+
+			scaledAnsValueArray[ArrayIdx] = scaledAnsValue[0];
+			scaledAnsValueArray[ArrayIdx + 1] = scaledAnsValue[1];
+			scaledAnsValueArray[ArrayIdx + 2] = scaledAnsValue[2];
+		}
+	}
+	for(unsigned x = 0; x < this->hazy_width; x++){
+		for(unsigned y = 0; y < this->hazy_height; y++){
 
 			RGBQUAD *rgbRes = (RGBQUAD*) malloc(sizeof(RGBQUAD));
-			rgbRes->rgbRed = (byte)((double)(Ired - this->A_value->rgbred) / tValue + this->A_value->rgbred);
-			rgbRes->rgbGreen = (byte)((double)(Igreen - this->A_value->rgbgreen) / tValue + this->A_value->rgbgreen);
-			rgbRes->rgbBlue = (byte)((double)(Iblue - (byte)this->A_value->rgbblue) / tValue + this->A_value->rgbblue);
 
-			/*
-			if( x < 100 && y < 30 ){
-				printf("(%u %u) ", x, y);
-				printf("t: %f ", tValue);
-				printf("[%u %u %u]\n", rgbRes->rgbRed, rgbRes->rgbGreen, rgbRes->rgbBlue);
+			unsigned ArrayIdx = DEF_XYZtoIdx(x, y, 0, this->hazy_height, 3);
+			for(int idx = 0; idx < 3; idx++){
+				scaledAnsValueArray[ArrayIdx + idx] /= tmp_Max[idx];	
 			}
-			*/
+			//printf("%f %f %f\n", scaledAnsValue[0], scaledAnsValue[1], scaledAnsValue[2]);
+			/*	
+			printf("[%u %u %u]\n", (unsigned)(scaledAnsValue[0] * 255),
+								   (unsigned)(scaledAnsValue[1] * 255),
+								   (unsigned)(scaledAnsValue[2] * 255));
+			*/	
 
-			//printf("(%u %u) %u ", x, y, dcValue);
+			rgbRes->rgbRed = (byte) ( scaledAnsValueArray[ArrayIdx] * 255 );
+			rgbRes->rgbGreen = (byte) ( scaledAnsValueArray[ArrayIdx + 1] * 255);
+			rgbRes->rgbBlue = (byte) ( scaledAnsValueArray[ArrayIdx + 2] * 255);
+
 			FreeImage_SetPixelColor(orBitmap,
 									x,
 									y,
@@ -234,7 +276,7 @@ void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
 		}
 	}
 
-	FreeImage_Save(FIF_PNG, orBitmap, file_name, 0);
+	FreeImage_Save(FIF_PNG, orBitmap, out_file_name, 0);
 }
 
 void hazy_pixels::pixelsSetImageAtmosphereLightValue(){
@@ -252,12 +294,18 @@ void hazy_pixels::pixelsSetImageAtmosphereLightValue(){
 													this->hazy_width *
 													this->hazy_height);
 	
+
+	double red_per = 0.33;
+	double blue_per = 0.33;
+	double green_per = 0.33;
+
+	/*
 	double tmp_itnsty = 0;
 	unsigned tmp_Idx = 0;
 	for(unsigned i = 0; i < array_upper_bound; i++){
-		double itn =   0.30 * this->pixel_array[i].color_tuple->rgbred + 
-					   0.59 * this->pixel_array[i].color_tuple->rgbgreen + 
-					   0.11 * this->pixel_array[i].color_tuple->rgbblue;
+		double itn =   red_per * this->pixel_array[i].color_tuple->rgbred + 
+					   green_per * this->pixel_array[i].color_tuple->rgbgreen + 
+					   blue_per * this->pixel_array[i].color_tuple->rgbblue;
 		if(itn > tmp_itnsty){
 			tmp_itnsty = itn;
 			tmp_Idx = i;
@@ -270,15 +318,32 @@ void hazy_pixels::pixelsSetImageAtmosphereLightValue(){
 	this->A_value->rgbblue = this->pixel_array[tmp_Idx].color_tuple->rgbblue;
 
 	//WARNING
-	double Average =(double) (this->A_value->rgbred + this->A_value->rgbgreen + this->A_value->rgbblue) / 3;
+	double trans =(double) ( red_per * this->A_value->rgbred + 
+							 green_per * this->A_value->rgbgreen + 
+							 blue_per * this->A_value->rgbblue);
 	this->A_value->rgbred = 
 	this->A_value->rgbblue = 
-	this->A_value->rgbgreen = (byte) Average;
+	this->A_value->rgbgreen = (byte) trans;
 	printf("(%u %u) [%u %u %u]\n", this->pixel_array[tmp_Idx].x,
 								   this->pixel_array[tmp_Idx].y,
 								   this->A_value->rgbred,
 								   this->A_value->rgbgreen,
 								   this->A_value->rgbblue);
+	*/
+	//Use average result:
+	double itn = 0.0;
+	for(unsigned i = 0; i < array_upper_bound; i++){
+		itn += red_per * this->pixel_array[i].color_tuple->rgbred + 
+			   green_per * this->pixel_array[i].color_tuple->rgbgreen + 
+			   blue_per * this->pixel_array[i].color_tuple->rgbblue;
+	}
+	itn /= array_upper_bound;
+	this->A_value = (rgbtuple *) malloc(sizeof(rgbtuple));
+	this->A_value->rgbred = this->A_value->rgbgreen = this->A_value->rgbblue = itn;
+	
+	printf("A: [%u %u %u]\n",	this->A_value->rgbred,
+								this->A_value->rgbgreen,
+								this->A_value->rgbblue);
 	free(this->pixel_array);
 	return ;
 }
@@ -327,6 +392,7 @@ double hazy_pixels::pixelsGetOriginaltValueByCoord(unsigned x, unsigned y){
 		}
 	}
 
+	//printf("%lf\n", 1-0.95*tValue);
 	
 	return 1 - 0.95*tValue;
 }

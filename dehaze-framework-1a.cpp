@@ -3,9 +3,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <string>
 
-#include "FreeImage.h"
 #include "HazyPixels.h"
 
 using namespace std;
@@ -45,7 +45,16 @@ int main(int argc, char *argv[]){
 	}
 
 	hpixels.pixelsSetImagePatchSize( patch_size );
+	
+	clock_t start = clock();
 	hpixels.pixelsSaveImageRawOriginalBitmap();
+	clock_t end = clock();
+	double duration = (double)(end-start) / CLOCKS_PER_SEC;
+	printf("1-time duration: %f sec\n", duration);
+
+	hpixels.pixelsUnLoader();
+	cout << "INFO: UnLoaded" << endl;
+
 	//FIBITMAP *pic_bitmap = GenericLoader(file_name.c_str(), 0);
 
 	return 0;
