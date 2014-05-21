@@ -37,3 +37,13 @@ But the result is not good enough. Pls wait for the next version.
 
 Good luck
 Vincent
+
+###2014-05-19:
+Now the new version of raw dehaze has been released!
+
+Pls use this command `dehaze-framework-1a.o -f [file_name] -i -w [patch_size]`
+And the result will be named : `[file_name]transferred_[patch_size]`
+
+Good Luck
+Vincent
+
