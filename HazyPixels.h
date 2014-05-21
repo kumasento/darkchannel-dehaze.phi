@@ -214,7 +214,7 @@ void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
 	
 	this->pixelsSetImageAtmosphereLightValue();
 
-	double tmp_Max[3] = { 1.0, 1.0, 1.0 };
+	double tmp_Max[3] = { 0.0, 0.0, 0.0 };
 	for(unsigned x = 0; x < this->hazy_width; x++){
 		for(unsigned y = 0; y < this->hazy_height; y++){
 			double tValue = (double)pixelsGetOriginaltValueByCoord(x, y);
@@ -226,12 +226,12 @@ void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
 			byte Iblue = (byte) tuple->rgbblue;
 
 			//Change to [0,1]
-			double scaledAvalue[3] = {(double) this->A_value->rgbred/255,
-									  (double) this->A_value->rgbgreen/255,
-									  (double) this->A_value->rgbblue/255};
-			double scaledIvalue[3] = {(double) Ired/255,
-									  (double) Igreen/255,
-									  (double) Iblue/255};
+			double scaledAvalue[3] = {(double) this->A_value->rgbred,
+									  (double) this->A_value->rgbgreen,
+									  (double) this->A_value->rgbblue};
+			double scaledIvalue[3] = {(double) Ired,
+									  (double) Igreen,
+									  (double) Iblue};
 			double scaledAnsValue[3] = {0.0, 0.0, 0.0};
 			
 			for(int idx = 0; idx < 3; idx++){
