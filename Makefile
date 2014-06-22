@@ -25,3 +25,7 @@ dehaze-framework-1a:
 
 dehaze-dark-channel-gen:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-dark-channel-gen.cpp -o ./bin/dehaze-dark-channel-gen.o
+
+general-matrix:
+	$(CC) -I./ GeneralMatrixTester.cpp -o ./bin/general_matrix_tester
+
