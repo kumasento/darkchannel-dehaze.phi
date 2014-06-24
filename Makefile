@@ -26,6 +26,12 @@ dehaze-framework-1a:
 dehaze-dark-channel-gen:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-dark-channel-gen.cpp -o ./bin/dehaze-dark-channel-gen.o
 
-general-matrix:
+general-matrix-prefix:
 	$(CC) -I./ GeneralMatrixTester.cpp -o ./bin/general_matrix_tester.o
+
+general-matrix-boxfilter:
+	$(CC) -I./ GeneralMatrixBoxFilter.cpp -o ./bin/general_matrix_box_filter.o
+
+general-matrix-guidedfilter:
+	$(CC) -I./ GeneralMatrixGuidedFilterTester.cpp -o ./bin/general_matrix_guided_filter.o
 
