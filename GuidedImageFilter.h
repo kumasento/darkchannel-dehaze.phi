@@ -6,6 +6,11 @@
 //#define PRESENT_MATLAB_LINE_NUM
 #define PRINT PrintMatrixArray
 
+#define PLUS(x, y) MatrixOptFilter( (x), (y), '+' )
+#define MINUS(x, y) MatrixOptFilter( (x), (y), '-' )
+#define MUL(x, y) MatrixOptFilter( (x), (y), '*' )
+#define DIV(x, y) MatrixOptFilter( (x), (y), '/' )
+
 template <class value_t>
 int boxfilter(general_matrix<value_t>& imSrc, general_matrix<value_t>& imDst, int r)
 {
@@ -91,45 +96,38 @@ int guidedfilter(general_matrix<value_t>& I, general_matrix<value_t>& p, int r, 
 	boxfilter(tmp_mat, N, r);
 
 	general_matrix<value_t> mean_I, mean_p, mean_Ip;
-	boxfilter(I, tmp_mat, r);	
-	mean_I.MatrixOptFilter( tmp_mat, N, '/' );
-	boxfilter(p, tmp_mat, r);
-	mean_p.MatrixOptFilter( tmp_mat, N, '/' );
+	boxfilter(I, tmp_mat, r); mean_I.DIV( tmp_mat, N );
+	boxfilter(p, tmp_mat, r); mean_p.DIV( tmp_mat, N );
 	general_matrix<value_t> tmp_mat2;
-	tmp_mat2.MatrixOptFilter( I, p, '*' );
+	tmp_mat2.MUL( I, p ); 
 	boxfilter( tmp_mat2, tmp_mat, r );
-	mean_Ip.MatrixOptFilter( tmp_mat, N, '/' );
+	mean_Ip.DIV( tmp_mat, N );
 
-	tmp_mat.MatrixOptFilter( mean_I, mean_p, '*' );
-	general_matrix<value_t> cov_Ip;
-	cov_Ip.MatrixOptFilter( mean_Ip, tmp_mat, '-' );
+	tmp_mat.MUL( mean_I, mean_p );
+	general_matrix<value_t> cov_Ip; cov_Ip.MINUS( mean_Ip, tmp_mat );
 
 	general_matrix<value_t> mean_II;
-	tmp_mat2.MatrixOptFilter( I, I, '*' );
-	boxfilter(tmp_mat2, tmp_mat, r);
-	mean_II.MatrixOptFilter( tmp_mat, N, '/' );
+	tmp_mat2.MUL( I, I );
+	boxfilter(tmp_mat2, tmp_mat, r); mean_II.DIV( tmp_mat, N );
 
 	general_matrix<value_t> var_I;
-	tmp_mat.MatrixOptFilter( mean_I, mean_I, '/' );
-	var_I.MatrixOptFilter( mean_II, tmp_mat, '-' );
+	tmp_mat.MUL( mean_I, mean_I ); var_I.MINUS( mean_II, tmp_mat );
 
 	tmp_mat2.ResizeMatrix( hei, wid, eps );
-	tmp_mat.MatrixOptFilter( var_I, tmp_mat2, '+');
+	tmp_mat.PLUS( var_I, tmp_mat2 );
 
 	general_matrix<value_t> a, b;
-	a.MatrixOptFilter( cov_Ip, tmp_mat, '/' );
 
-	tmp_mat.MatrixOptFilter( a, mean_I, '*' );
-	b.MatrixOptFilter( mean_p, tmp_mat, '-');
+	a.DIV( cov_Ip, tmp_mat );
+	tmp_mat.MUL( a, mean_I );
+	b.MINUS( mean_p, tmp_mat );
 
 	general_matrix<value_t> mean_a, mean_b;
-	boxfilter( a, tmp_mat, r );
-	mean_a.MatrixOptFilter( tmp_mat, N, '/' );
-	boxfilter( b, tmp_mat, r );
-	mean_b.MatrixOptFilter( tmp_mat, N, '/' );
+	boxfilter( a, tmp_mat, r ); mean_a.DIV( tmp_mat, N );
+	boxfilter( b, tmp_mat, r ); mean_b.DIV( tmp_mat, N );
 
-	tmp_mat.MatrixOptFilter( mean_a, I, '*' );
-	q.MatrixOptFilter( tmp_mat, mean_b, '+');
+	tmp_mat.MUL( mean_a, I );
+	q.PLUS( tmp_mat, mean_b );
 
 	return 1;
 }
