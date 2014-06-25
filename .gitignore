@@ -21,3 +21,6 @@
 *.app
 
 *.dSYM
+*.png
+*.jpg
+*.PNG

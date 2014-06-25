@@ -1,4 +1,4 @@
-CC = g++ -Wall -O3 -fmessage-length=0 -g
+CC = g++ -Wall -fmessage-length=0 -g
 
 FIVERSION = 3.15.4
 INCLUDE = -I./FreeImageLib/ -I./
@@ -22,6 +22,9 @@ freeimage-imageinfo-demo:
 
 dehaze-framework-1a:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-framework-1a.cpp -o ./bin/dehaze-framework-1a.o
+
+dehaze-framework-2a:
+	$(CC) $(INCLUDE) $(LIBS) dehaze-framework-2a.cpp -o ./bin/dehaze-framework-2a.o -g
 
 dehaze-dark-channel-gen:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-dark-channel-gen.cpp -o ./bin/dehaze-dark-channel-gen.o

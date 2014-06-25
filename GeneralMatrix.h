@@ -97,6 +97,7 @@ public:
 		}
 		else{
 			printf("Height: %d Width: %d\n", this->mat_height, this->mat_width);
+			/*
 			for(int x = 0; x < this->mat_height; x++){
 				for(int y = 0; y < this->mat_width; y++){
 					int idx = XYtoIdx(x, y, this->mat_width);
@@ -104,6 +105,7 @@ public:
 				}
 				printf("\n");
 			}
+			*/
 		}
 	}
 
@@ -201,7 +203,7 @@ int general_matrix<Type>::MatrixOptFilter(general_matrix<Type>& src_mat1,
 	Type * src_arr1 = src_mat1.GetMatrixArray();
 	Type * src_arr2 = src_mat2.GetMatrixArray();
 	
-	this->ResizeMatrix( src_hei1, src_hei2, 0 );
+	this->ResizeMatrix( src_hei1, src_wid1, 0 );
 	this->ArrayDotOptFilter( src_arr1, src_arr2, opt );
 
 	return 1;

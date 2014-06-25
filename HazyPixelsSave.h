@@ -2,26 +2,8 @@
  * WARNING: Make sure you've set all the info
  */ 
 
-
-void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
-	char file_name[60]; memset(file_name, 0, sizeof(file_name));
-	sprintf(file_name, "dark_channel_bitmap_%u.png", this->hazy_patch_size);
-	FIBITMAP *dcBitmap = FIInterfaceGenerateBitmapEightBits(this->hazy_width,
-															this->hazy_height);
-
-	for(unsigned x = 0; x < this->hazy_width; x++){
-		for(unsigned y = 0; y < this->hazy_height; y++){
-			byte dcValue = pixelsGetDarkChannelByCoord(x, y);
-			//printf("(%u %u) %u ", x, y, dcValue);
-			FreeImage_SetPixelIndex(dcBitmap,
-									x,
-									y,
-									&dcValue);
-		}
-	}
-
-	FreeImage_Save(FIF_PNG, dcBitmap, file_name, 0);
-}
+#include "GeneralMatrix.h"
+#include "GuidedImageFilter.h"
 
 void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
 	char out_file_name[60]; memset(out_file_name, 0, sizeof(out_file_name));
@@ -124,15 +106,16 @@ void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
 
 void hazy_pixels::pixelsBuildtValueArray()
 {
-	int hei = this->hazy_height, wid = this->hazy_width;
+	unsigned hei = this->hazy_height, wid = this->hazy_width;
+	printf("%d %d\n", hei, wid);
 	int arr_size = hei * wid;
-	t_value_arr = (double) malloc(sizeof(double) * arr_size);
-	double *gray_I_arr = (double) malloc(sizeof(double) * arr_size);
+	this->t_value_arr = (double *) malloc(sizeof(double) * arr_size);
+	double *gray_I_arr = (double *) malloc(sizeof(double) * arr_size);
 
 	//Pass 1: Set the array
-	for(unsigned x = 0; x < hei; x++){
-		for(unsigned y = 0; y < wid; y++){
-			unsigned t_idx = DEF_XTtoIdx(x, y, wid);
+	for(unsigned x = 0; x < wid; x++){
+		for(unsigned y = 0; y < hei; y++){
+			unsigned t_idx = DEF_XYtoIdx(x, y, hei);
 
 			rgbtuple *tuple = pixelsGetRGBTupleByCoord(x, y);
 			byte Ired = (byte) tuple->rgbred;
@@ -143,23 +126,36 @@ void hazy_pixels::pixelsBuildtValueArray()
 			gray_I_arr[t_idx] = ((double) Ired + Igreen + Iblue) / 3;
 		}
 	}
+	puts("Pass 1");
 
 	//Pass 2: Transfer it into a general_matrix
-	general_matrix<double> t_value_mat(hei, wid, this->t_value_arr);
-	general_matrix<double> gray_I_mat(hei, wid, gray_I_arr);
+	general_matrix<double> t_value_mat(wid, hei, this->t_value_arr);
+	general_matrix<double> gray_I_mat(wid, hei, gray_I_arr);
+	puts("Pass 2");
 
 	general_matrix<double> q;
 	int r = 20;
 	double eps = 1e-3;
 	guidedfilter(gray_I_mat, t_value_mat, r, eps, q);
+	puts("Pass 3");
 
 	memcpy(this->t_value_arr, q.GetMatrixArray(), arr_size * sizeof(double));
+	double max_t_value = 0.0;
+	for(int idx = 0; idx < arr_size; idx ++)
+		if( this->t_value_arr[idx] > max_t_value )
+			max_t_value = this->t_value_arr[idx];
+	printf("%f\n", max_t_value);
+	for(int idx = 0; idx < arr_size; idx ++)
+		this->t_value_arr[idx] = (this->t_value_arr[idx] / max_t_value) * 1; 
 }
 
 void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(){
 	char out_file_name[60]; memset(out_file_name, 0, sizeof(out_file_name));
-	sprintf(out_file_name, "%s_transferred_%u.png", this->hazy_file_name,
+	sprintf(out_file_name, "%s_2a_transferred_%u.png", this->hazy_file_name,
 													this->hazy_patch_size);
+
+	this->pixelsSetImageAtmosphereLightValue();
+	this->pixelsBuildtValueArray();
 	
 	FIBITMAP *orBitmap = FIInterfaceGenerateBitmapColorBits(this->hazy_width,
 															this->hazy_height);
@@ -167,13 +163,11 @@ void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(){
 													this->hazy_width *
 													this->hazy_height *
 													3);
-	
-	this->pixelsSetImageAtmosphereLightValue();
 
 	double tmp_Max[3] = { 0.0, 0.0, 0.0 };
 	for(unsigned x = 0; x < this->hazy_width; x++){
 		for(unsigned y = 0; y < this->hazy_height; y++){
-			unsigned t_idx = DEF_XTtoIdx(x, y, this->hazy_width);
+			unsigned t_idx = DEF_XYtoIdx(x, y, this->hazy_height);
 			double tValue = t_value_arr[t_idx];
 			tValue = DEF_MAX(tValue, 0.1);
 

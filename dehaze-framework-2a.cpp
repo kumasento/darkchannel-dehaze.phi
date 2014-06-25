@@ -48,7 +48,7 @@ int main(int argc, char *argv[]){
 	hpixels.pixelsSetImagePatchSize( patch_size );
 	
 	clock_t start = clock();
-	hpixels.pixelsSaveImageRawOriginalBitmap();
+	hpixels.pixelsSaveImageMattedOriginalBitmap();
 	clock_t end = clock();
 	double duration = (double)(end-start) / CLOCKS_PER_SEC;
 	printf("1-time duration: %f sec\n", duration);

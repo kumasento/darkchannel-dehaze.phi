@@ -28,7 +28,6 @@ int boxfilter(general_matrix<value_t>& imSrc, general_matrix<value_t>& imDst, in
 
 	int hei = imSrc.GetMatrixHeight(), wid = imSrc.GetMatrixWidth();
 	imDst.ResizeMatrix(hei, wid, 0);
-
 	/*
 	 *	MATLAB Code:
 	 *	%cumulative sum over Y axis
@@ -88,25 +87,30 @@ int boxfilter(general_matrix<value_t>& imSrc, general_matrix<value_t>& imDst, in
 	imCum.ExtractMatrix(0, hei, wid-2*r-1, r, tmp_mat);
 	tmp_mat = tmp_mat2 - tmp_mat;
 	imDst.DistrictAssignMatrix(0, wid-r, tmp_mat);
-
+	
 	return 1;
 }
 
 template <class value_t>
 int guidedfilter(general_matrix<value_t>& I, general_matrix<value_t>& p, int r, value_t eps, general_matrix<value_t>& q)
 {
-	int hei = I.GetMatrixHeight();
-	int wid = I.GetMatrixWidth();
+	int hei = p.GetMatrixHeight();
+	int wid = p.GetMatrixWidth();
+
+	printf("hei: %d wid: %d\n", hei, wid);
 	general_matrix<value_t> N;
 	general_matrix<value_t> tmp_mat(hei, wid, 1);
 	boxfilter(tmp_mat, N, r);
 
 	general_matrix<value_t> mean_I, mean_p, mean_Ip;
+	
 	boxfilter(I, tmp_mat, r); mean_I.DIV( tmp_mat, N );
 	boxfilter(p, tmp_mat, r); mean_p.DIV( tmp_mat, N );
 	general_matrix<value_t> tmp_mat2;
 	tmp_mat2.MUL( I, p ); 
 	boxfilter( tmp_mat2, tmp_mat, r );
+	tmp_mat.PRINT();
+	N.PRINT();
 	mean_Ip.DIV( tmp_mat, N );
 
 	tmp_mat.MUL( mean_I, mean_p );

@@ -62,7 +62,7 @@ class hazy_pixels{
 
 		hazy_pixel *pixel_array;
 		rgbtuple *A_value;
-		double *t_vale_arr;
+		double *t_value_arr;
 		char hazy_file_name[DEF_FILE_NAME_LEN];
 };
 
