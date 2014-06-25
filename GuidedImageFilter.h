@@ -11,6 +11,12 @@
 #define MUL(x, y) MatrixOptFilter( (x), (y), '*' )
 #define DIV(x, y) MatrixOptFilter( (x), (y), '/' )
 
+#define CAL_VAR(dst, src_11, src_12, src_21, src_22, tmp_1, tmp_2, r) \
+(tmp_1).MUL( (src_11), (src_12) );\
+boxfilter((tmp_1), (tmp_2), (r));\
+(tmp_1).MUL( (src_21), (src_22) );\
+(dst).MINUS( (tmp_2), (tmp_1) );
+
 template <class value_t>
 int boxfilter(general_matrix<value_t>& imSrc, general_matrix<value_t>& imDst, int r)
 {
@@ -132,5 +138,53 @@ int guidedfilter(general_matrix<value_t>& I, general_matrix<value_t>& p, int r, 
 	return 1;
 }
 
+template <class value_t>
+int guidedfilter_color(general_matrix<value_t>& I_r,
+					   general_matrix<value_t>& I_g,
+					   general_matrix<value_t>& I_b,	 
+					   general_matrix<value_t>& p, 
+					   int r, 
+					   value_t eps, 
+					   general_matrix<value_t>& q)
+{
+	int hei = p.GetMatrixHeight();
+	int wid = p.GetMatrixWidth();
+	general_matrix<value_t> N;
+	general_matrix<value_t> tmp_mat(hei, wid, 1);
+	boxfilter(tmp_mat, N, r);
+
+	general_matrix<value_t> mean_I_r, mean_I_g, mean_I_b;
+	general_matrix<value_t> mean_p;
+	general_matrix<value_t> mean_Ip_r, mean_Ip_g, mean_Ip_b;
+	boxfilter(I_r, tmp_mat, r); mean_I_r.DIV( tmp_mat, N ); // mean_I_r = boxfilter(I(:, :, 1), r) ./ N;
+	boxfilter(I_g, tmp_mat, r); mean_I_g.DIV( tmp_mat, N ); // mean_I_g = boxfilter(I(:, :, 2), r) ./ N;
+	boxfilter(I_b, tmp_mat, r); mean_I_b.DIV( tmp_mat, N ); // mean_I_b = boxfilter(I(:, :, 3), r) ./ N;
+
+	boxfilter(p, tmp_mat, r); mean_p.DIV( tmp_mat, N ); // mean_p = boxfilter(p, r) ./ N;
+
+	general_matrix<value_t> tmp_mat2;
+	// mean_Ip_r = boxfilter(I(:, :, 1).*p, r) ./ N;
+	tmp_mat2.MUL( I_r , p ); boxfilter( tmp_mat2, tmp_mat, r ); mean_Ip_r.DIV( tmp_mat, N );
+	// mean_Ip_g = boxfilter(I(:, :, 1).*p, r) ./ N;
+	tmp_mat2.MUL( I_g , p ); boxfilter( tmp_mat2, tmp_mat, r ); mean_Ip_g.DIV( tmp_mat, N );
+	// mean_Ip_b = boxfilter(I(:, :, 1).*p, r) ./ N;
+	tmp_mat2.MUL( I_b , p ); boxfilter( tmp_mat2, tmp_mat, r ); mean_Ip_b.DIV( tmp_mat, N );
+
+	//cov_Ip_r = mean_Ip_r - mean_I_r .* mean_p;
+	general_matrix<value_t> cov_Ip_r, cov_Ip_g, cov_Ip_b;
+	tmp_mat.MUL( mean_I_r, mean_p ); cov_Ip_r.MINUS( mean_Ip_r, tmp_mat );
+	tmp_mat.MUL( mean_I_g, mean_p ); cov_Ip_g.MINUS( mean_Ip_g, tmp_mat );
+	tmp_mat.MUL( mean_I_b, mean_p ); cov_Ip_b.MINUS( mean_Ip_b, tmp_mat );
+
+	general_matrix<value_t> var_I_rr, var_I_rg, var_I_rb, var_I_gg, var_I_gb, var_I_bb;
+	CAL_VAR(var_I_rr, I_r, I_r, mean_I_r, mean_I_r, tmp_mat, tmp_mat2, r);
+	CAL_VAR(var_I_rg, I_r, I_g, mean_I_r, mean_I_g, tmp_mat, tmp_mat2, r);
+	CAL_VAR(var_I_rb, I_r, I_b, mean_I_r, mean_I_b, tmp_mat, tmp_mat2, r);
+	CAL_VAR(var_I_gg, I_g, I_g, mean_I_g, mean_I_g, tmp_mat, tmp_mat2, r);
+	CAL_VAR(var_I_gb, I_g, I_b, mean_I_g, mean_I_b, tmp_mat, tmp_mat2, r);
+	CAL_VAR(var_I_bb, I_b, I_b, mean_I_b, mean_I_b, tmp_mat, tmp_mat2, r);
+	
+	return 1;
+}
 
  
