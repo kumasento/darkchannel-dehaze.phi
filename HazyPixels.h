@@ -2,9 +2,12 @@
  * This one describes the picture class used in this application
  */
 
-#include "FreeImage.h"
-#include "FreeImageInterfaces.h"
-#include "utils.h"
+#ifdef FREE_IMAGE_SUPPORT
+	#include "FreeImage.h"
+	#include "FreeImageInterfaces.h"
+#elif OPENCV_SUPPORT
+ 	#include <OpenCVInterfaces.h>
+#endif
 
 #define DEF_MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define DEF_MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -33,6 +36,14 @@ int hazy_pixel_cmp(const void* a, const void *b){
 
 class hazy_pixels{
 	public:
+		hazy_pixels();
+		hazy_pixels(const char *file_name)
+		{
+			pixelsLoader(file_name, 0);
+			pixelsSetImageBasicInfo();
+			pixelsSetImagePixelArray();
+		}
+
 		bool pixelsLoader(const char *file_name, int flag);
 		void pixelsUnLoader();
 
@@ -48,17 +59,25 @@ class hazy_pixels{
 		double pixelsGetOriginaltValueByCoord(unsigned x, unsigned y);
 		void pixelsBuildtValueArray(int r, double eps);
 
+		void pixelsSaveOriginalImage(const char *file_name);
 		void pixelsSaveImageDarkChannelBitmap();
 		void pixelsSaveImageRawOriginalBitmap();
 		void pixelsSaveImageMattedOriginalBitmap(int r, double eps);
+
+		void pixelsPrintImageInfo();
 	private:
+	#ifdef FREE_IMAGE_SUPPORT
 		FIBITMAP *hazy_bitmap;
 		BITMAPINFO *hazy_bitmap_info;
 
 		FREE_IMAGE_COLOR_TYPE hazy_bitmap_color_type;
 		bool hazy_bitmap_available;
+	#elif OPENCV_SUPPORT
+		cv::Mat CV_IMAGE_MAT;
+	#endif
 		unsigned hazy_height, hazy_width;
 		unsigned hazy_patch_size;	
+		std::string hazy_name;
 
 		hazy_pixel *pixel_array;
 		rgbtuple *A_value;
@@ -66,7 +85,12 @@ class hazy_pixels{
 		char hazy_file_name[DEF_FILE_NAME_LEN];
 };
 
-bool hazy_pixels::pixelsLoader(const char *file_name, int flag){
+bool hazy_pixels::pixelsLoader(const char *file_name, int flag = 0){
+	this->hazy_name = std::string(file_name);
+	int str_pos = this->hazy_name.find('.');
+	this->hazy_name = this->hazy_name.substr(0, str_pos);
+
+#ifdef FREE_IMAGE_SUPPORT
 	this->hazy_bitmap = FIInterfaceGenericLoader(file_name, flag);
 	if(this->hazy_bitmap == NULL)
 		this->hazy_bitmap_available = false;
@@ -75,19 +99,26 @@ bool hazy_pixels::pixelsLoader(const char *file_name, int flag){
 
 	strcpy(this->hazy_file_name, file_name);
 	return this->hazy_bitmap_available;
+#else
+	return OpenCVInterfaces::CVImageLoader(file_name, this->CV_IMAGE_MAT);
+#endif
 }
 
 void hazy_pixels::pixelsUnLoader(){
+#ifdef FREE_IMAGE_SUPPORT
 	FIInterfaceUnLoader(this->hazy_bitmap);
+#endif
 }
 
 void hazy_pixels::pixelsSetImagePixelArray(){
 	pixel_array = (hazy_pixel*) malloc( sizeof(hazy_pixel) * 
 										this->hazy_width *
 										this->hazy_height);
+
+#ifdef FREE_IMAGE_SUPPORT
 	int Idx = 0;
-	for(unsigned x = 0; x < this->hazy_width; x++){
-		for(unsigned y = 0;  y < this->hazy_height; y++){
+	for(unsigned x = 0; x < this->hazy_height; x++){
+		for(unsigned y = 0;  y < this->hazy_width; y++){
 			pixel_array[Idx].x = x;
 			pixel_array[Idx].y = y;
 			pixel_array[Idx].color_tuple = pixelsGetRGBTupleByCoord(x, y);
@@ -99,24 +130,47 @@ void hazy_pixels::pixelsSetImagePixelArray(){
 			pixel_array[Idx].color_tuple->rgbgreen = _tuple->rgbgreen;
 			pixel_array[Idx].color_tuple->rgbblue = _tuple->rgbblue;
 			*/
+
 			pixel_array[Idx].dc_value = pixelsGetDarkChannelByCoord(x, y);
 
 			Idx ++;
 		}
 	}
+#elif OPENCV_SUPPORT
+	elem_t * p = CV_IMAGE_MAT.data;
+	int Idx = 0;
+	for(unsigned x = 0; x < this->hazy_height; x++){
+		for(unsigned y = 0; y < this->hazy_width; y++){
+			pixel_array[Idx].x = x;
+			pixel_array[Idx].y = y;
+			pixel_array[Idx].color_tuple = (rgbtuple*) malloc(sizeof(rgbtuple));
+			pixel_array[Idx].color_tuple->rgbblue = p[Idx*3];
+			pixel_array[Idx].color_tuple->rgbgreen = p[Idx*3+1];
+			pixel_array[Idx].color_tuple->rgbred = p[Idx*3+2];
+			Idx++;
+		}
+	}
+#endif
 }
 
 /*
  * WARNING: Make sure you have loaded the bitmap
  */
 void hazy_pixels::pixelsSetImageBasicInfo(){
+#ifdef FREE_IMAGE_SUPPORT
 	this->hazy_height = FreeImage_GetHeight(this->hazy_bitmap);
 	this->hazy_width = FreeImage_GetWidth(this->hazy_bitmap);
 	this->hazy_bitmap_info = FreeImage_GetInfo(this->hazy_bitmap);
 	this->hazy_bitmap_color_type = FreeImage_GetColorType(this->hazy_bitmap);
+#elif OPENCV_SUPPORT
+	this->hazy_height = this->CV_IMAGE_MAT.rows;
+	this->hazy_width = this->CV_IMAGE_MAT.cols;
+#endif
 }
 
 rgbtuple* hazy_pixels::pixelsGetRGBTupleByCoord(unsigned x, unsigned y){
+
+#ifdef FREE_IMAGE_SUPPORT
 	RGBQUAD *rgbptr = (RGBQUAD*) malloc(sizeof(RGBQUAD));
 	if(FreeImage_GetPixelColor(this->hazy_bitmap, x, y, rgbptr)){
 		rgbtuple *_rgbtuple = (rgbtuple*) malloc(sizeof(rgbtuple));
@@ -130,6 +184,9 @@ rgbtuple* hazy_pixels::pixelsGetRGBTupleByCoord(unsigned x, unsigned y){
 		*/
 		return _rgbtuple;
 	}
+#endif
+
+
 	return NULL;
 }
 
@@ -153,37 +210,7 @@ void hazy_pixels::pixelsSetImageAtmosphereLightValue(){
 	double blue_per = 0.33;
 	double green_per = 0.33;
 
-	/*
-	double tmp_itnsty = 0;
-	unsigned tmp_Idx = 0;
-	for(unsigned i = 0; i < array_upper_bound; i++){
-		double itn =   red_per * this->pixel_array[i].color_tuple->rgbred + 
-					   green_per * this->pixel_array[i].color_tuple->rgbgreen + 
-					   blue_per * this->pixel_array[i].color_tuple->rgbblue;
-		if(itn > tmp_itnsty){
-			tmp_itnsty = itn;
-			tmp_Idx = i;
-		}
-	}
-
-	this->A_value = (rgbtuple *) malloc(sizeof(rgbtuple));
-	this->A_value->rgbred = this->pixel_array[tmp_Idx].color_tuple->rgbred;
-	this->A_value->rgbgreen = this->pixel_array[tmp_Idx].color_tuple->rgbgreen;
-	this->A_value->rgbblue = this->pixel_array[tmp_Idx].color_tuple->rgbblue;
-
-	//WARNING
-	double trans =(double) ( red_per * this->A_value->rgbred + 
-							 green_per * this->A_value->rgbgreen + 
-							 blue_per * this->A_value->rgbblue);
-	this->A_value->rgbred = 
-	this->A_value->rgbblue = 
-	this->A_value->rgbgreen = (byte) trans;
-	printf("(%u %u) [%u %u %u]\n", this->pixel_array[tmp_Idx].x,
-								   this->pixel_array[tmp_Idx].y,
-								   this->A_value->rgbred,
-								   this->A_value->rgbgreen,
-								   this->A_value->rgbblue);
-	*/
+	
 	//Use average result:
 	double itn = 0.0;
 	for(unsigned i = 0; i < array_upper_bound; i++){
@@ -294,4 +321,11 @@ double hazy_pixels::pixelsGetOriginaltValueByCoord(unsigned x, unsigned y){
 	//printf("%lf\n", 1-0.95*tValue);
 	
 	return 1 - 0.95*tValue;
+}
+
+void hazy_pixels::pixelsPrintImageInfo(){
+	printf("Image Info:\n");
+	printf("name: %s\n", this->hazy_name.c_str());
+	printf("height: %d width: %d\n", this->hazy_height, this->hazy_width);
+	return ;
 }

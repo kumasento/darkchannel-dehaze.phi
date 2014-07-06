@@ -5,7 +5,34 @@
 #include "GeneralMatrix.h"
 #include "GuidedImageFilter.h"
 
+void hazy_pixels::pixelsSaveOriginalImage(const char *file_name){
+	std::string saved_file_name = std::string(file_name) + std::string("_original.png");
+
+	cv::Mat saved_image_mat(this->hazy_height, this->hazy_width,  CV_8UC3);
+	int Idx = 0;
+
+	for(unsigned i = 0; i < saved_image_mat.rows; i++){
+		for(unsigned j = 0; j < saved_image_mat.cols; j++){
+			/*
+			printf("(%d %d): ", i, j);
+			printf("(R %3d G %3d B %3d)\n", this->pixel_array[Idx].color_tuple->rgbred,
+											this->pixel_array[Idx].color_tuple->rgbgreen, 
+											this->pixel_array[Idx].color_tuple->rgbblue);
+			*/
+			saved_image_mat.at<cv::Vec3b>(i,j)[0] = this->pixel_array[Idx].color_tuple->rgbblue;
+			saved_image_mat.at<cv::Vec3b>(i,j)[1] = this->pixel_array[Idx].color_tuple->rgbgreen;
+			saved_image_mat.at<cv::Vec3b>(i,j)[2] = this->pixel_array[Idx].color_tuple->rgbred;
+			Idx++;
+		}
+	}
+
+	//std::cout << saved_image_mat << std::endl;
+	
+	OpenCVInterfaces::CVImageSaver(saved_file_name.c_str(), saved_image_mat);
+}
+
 void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
+#ifdef FREE_IMAGE_SUPPORT
 	char out_file_name[60]; memset(out_file_name, 0, sizeof(out_file_name));
 	sprintf(out_file_name, "%s_transferred_%u.png", this->hazy_file_name,
 													this->hazy_patch_size);
@@ -82,9 +109,11 @@ void hazy_pixels::pixelsSaveImageRawOriginalBitmap(){
 	}
 
 	FreeImage_Save(FIF_PNG, orBitmap, out_file_name, 0);
+#endif
 }
 
 void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
+#ifdef FREE_IMAGE_SUPPORT
 	char file_name[60]; memset(file_name, 0, sizeof(file_name));
 	sprintf(file_name, "dark_channel_bitmap_%u.png", this->hazy_patch_size);
 	FIBITMAP *dcBitmap = FIInterfaceGenerateBitmapEightBits(this->hazy_width,
@@ -102,6 +131,7 @@ void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
 	}
 
 	FreeImage_Save(FIF_PNG, dcBitmap, file_name, 0);
+#endif
 }
 
 /**
@@ -110,6 +140,7 @@ void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
  */
 void hazy_pixels::pixelsBuildtValueArray(int r, double eps)
 {
+#ifdef FREE_IMAGE_SUPPORT
 	unsigned hei = this->hazy_height, wid = this->hazy_width;
 	printf("%d %d\n", hei, wid);
 	int arr_size = hei * wid;
@@ -146,9 +177,11 @@ void hazy_pixels::pixelsBuildtValueArray(int r, double eps)
 	if(max_t_value > 1)
 		for(int idx = 0; idx < arr_size; idx ++)
 			this->t_value_arr[idx] = (this->t_value_arr[idx] / max_t_value) * 1; 
+#endif
 }
 
 void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(int r, double eps){
+#ifdef FREE_IMAGE_SUPPORT
 	char out_file_name[60]; memset(out_file_name, 0, sizeof(out_file_name));
 	sprintf(out_file_name, "%s_2a_transferred_%u_%u.png", 
 													this->hazy_file_name,
@@ -233,4 +266,5 @@ void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(int r, double eps){
 	}
 
 	FreeImage_Save(FIF_PNG, orBitmap, out_file_name, 0);
+#endif
 }

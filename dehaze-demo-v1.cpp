@@ -2,7 +2,9 @@
 #include <cstdio>
 #include <unistd.h>
 
-#include <OpenCVInterfaces.h>
+//#include <OpenCVInterfaces.h>
+#include <HazyPixels.h>
+#include <HazyPixelsSave.h>
 
 using namespace std;
 
@@ -13,8 +15,9 @@ int main(int argc, char *argv[]){
 	int patch_size = 3;
 	int r = 30;
 	double eps = 1e-3;
+	int file_type = 1;
 
-	while((opt = getopt(argc, argv, "f:iw:r:e:")) != -1){
+	while((opt = getopt(argc, argv, "f:iw:r:e:t:")) != -1){
 		switch(opt){
 			case 'f':
 				file_name = string(optarg);
@@ -35,10 +38,20 @@ int main(int argc, char *argv[]){
 					eps /= 10;
 				break;
 			}
+			case 't':
+				file_type = atoi(optarg);
+				break;
+			case 'h':
+				cout << "Usage: -f [file_name] -t [file_type: 1-image/ 2-video]" << endl;
+				break;
 			default:
 				return 1;
 		}
 	}
+
+	hazy_pixels hpixels(file_name.c_str());
+	hpixels.pixelsPrintImageInfo();
+	hpixels.pixelsSaveOriginalImage(file_name.c_str());
 
 	return 0;
 }

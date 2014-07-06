@@ -1,9 +1,11 @@
 CC = g++ -Wall -fmessage-length=0 -g
 
 FIVERSION = 3.15.4
+CVVERSION = 2.4.9
 INCLUDE = -I./FreeImageLib/ -I./
 LIBS = -L./FreeImageLib/ -lfreeimage -lfreeimage-$(FIVERSION)
-CV_INC = -I/usr/local/Cellar/opencv/ -I./
+CV_INC = -I/usr/local/Cellar/opencv/$(CVVERSION)/include/ -I./
+CV_LIB = -L/usr/local/Cellar/opencv/$(CVVERSION)/lib/
 
 freeimage-test:
 	g++ -Wall -I./FreeImageLib/ -L./FreeImageLib/ -lfreeimage -lfreeimage-3.15.4 freeimage-test.cpp -o ./bin/freeimage-test
@@ -22,13 +24,20 @@ freeimage-imageinfo-demo:
 
 
 dehaze-framework-1a:
-	$(CC) $(INCLUDE) $(LIBS) dehaze-framework-1a.cpp -o ./bin/dehaze-framework-1a.o
+	-DFREE_IMAGE_SUPPORT \
+	$(CC) $(INCLUDE) $(LIBS) \ 
+	dehaze-framework-1a.cpp -o ./bin/dehaze-framework-1a.o
 
 dehaze-framework-2a:
-	$(CC) $(INCLUDE) $(LIBS) dehaze-framework-2a.cpp -o ./bin/dehaze-framework-2a.o -g
+	-DFREE_IMAGE_SUPPORT
+	$(CC) $(INCLUDE) $(LIBS) 
+	dehaze-framework-2a.cpp -o ./bin/dehaze-framework-2a.o -g
 
 dehaze-demo-v1:
-	$(CC) $(CV_INC) dehaze-demo-v1.cpp -o ./bin/dehaze-demo-v1.o
+	$(CC) $(CV_INC) $(CV_LIB) \
+	-DOPENCV_SUPPORT \
+	-lopencv_core.$(CVVERSION) -lopencv_imgproc.$(CVVERSION) -lopencv_highgui.$(CVVERSION) \
+	dehaze-demo-v1.cpp -o ./bin/dehaze-demo-v1.o 
 
 dehaze-dark-channel-gen:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-dark-channel-gen.cpp -o ./bin/dehaze-dark-channel-gen.o
