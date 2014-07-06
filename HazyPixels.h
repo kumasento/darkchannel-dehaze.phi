@@ -46,11 +46,11 @@ class hazy_pixels{
 		rgbtuple* pixelsGetRGBTupleByCoord(unsigned x, unsigned y);
 		byte pixelsGetDarkChannelByCoord(unsigned x, unsigned y);
 		double pixelsGetOriginaltValueByCoord(unsigned x, unsigned y);
-		void pixelsBuildtValueArray();
+		void pixelsBuildtValueArray(int r, double eps);
 
 		void pixelsSaveImageDarkChannelBitmap();
 		void pixelsSaveImageRawOriginalBitmap();
-		void pixelsSaveImageMattedOriginalBitmap();
+		void pixelsSaveImageMattedOriginalBitmap(int r, double eps);
 	private:
 		FIBITMAP *hazy_bitmap;
 		BITMAPINFO *hazy_bitmap_info;

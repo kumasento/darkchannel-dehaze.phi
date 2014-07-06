@@ -104,7 +104,11 @@ void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
 	FreeImage_Save(FIF_PNG, dcBitmap, file_name, 0);
 }
 
-void hazy_pixels::pixelsBuildtValueArray()
+/**
+ * pixelsBuildValueArray: 
+ * use guided filter to change the t_value
+ */
+void hazy_pixels::pixelsBuildtValueArray(int r, double eps)
 {
 	unsigned hei = this->hazy_height, wid = this->hazy_width;
 	printf("%d %d\n", hei, wid);
@@ -123,39 +127,36 @@ void hazy_pixels::pixelsBuildtValueArray()
 			byte Iblue = (byte) tuple->rgbblue;
 			
 			this->t_value_arr[t_idx] = (double)pixelsGetOriginaltValueByCoord(x, y);
-			gray_I_arr[t_idx] = ((double) Ired + Igreen + Iblue) / 3;
+			gray_I_arr[t_idx] = (double)(Ired * 30 + Igreen * 59 + Iblue * 11 + 50) / 100;
 		}
 	}
-	puts("Pass 1");
 
 	//Pass 2: Transfer it into a general_matrix
 	general_matrix<double> t_value_mat(wid, hei, this->t_value_arr);
 	general_matrix<double> gray_I_mat(wid, hei, gray_I_arr);
-	puts("Pass 2");
 
 	general_matrix<double> q;
-	int r = 20;
-	double eps = 1e-3;
 	guidedfilter(gray_I_mat, t_value_mat, r, eps, q);
-	puts("Pass 3");
 
 	memcpy(this->t_value_arr, q.GetMatrixArray(), arr_size * sizeof(double));
 	double max_t_value = 0.0;
 	for(int idx = 0; idx < arr_size; idx ++)
 		if( this->t_value_arr[idx] > max_t_value )
 			max_t_value = this->t_value_arr[idx];
-	printf("%f\n", max_t_value);
-	for(int idx = 0; idx < arr_size; idx ++)
-		this->t_value_arr[idx] = (this->t_value_arr[idx] / max_t_value) * 1; 
+	if(max_t_value > 1)
+		for(int idx = 0; idx < arr_size; idx ++)
+			this->t_value_arr[idx] = (this->t_value_arr[idx] / max_t_value) * 1; 
 }
 
-void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(){
+void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(int r, double eps){
 	char out_file_name[60]; memset(out_file_name, 0, sizeof(out_file_name));
-	sprintf(out_file_name, "%s_2a_transferred_%u.png", this->hazy_file_name,
-													this->hazy_patch_size);
+	sprintf(out_file_name, "%s_2a_transferred_%u_%u.png", 
+													this->hazy_file_name,
+													this->hazy_patch_size,
+													r);
 
 	this->pixelsSetImageAtmosphereLightValue();
-	this->pixelsBuildtValueArray();
+	this->pixelsBuildtValueArray(r, eps);
 	
 	FIBITMAP *orBitmap = FIInterfaceGenerateBitmapColorBits(this->hazy_width,
 															this->hazy_height);
@@ -215,6 +216,10 @@ void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(){
 								   (unsigned)(scaledAnsValue[1] * 255),
 								   (unsigned)(scaledAnsValue[2] * 255));
 			*/	
+
+			if( scaledAnsValueArray[ArrayIdx] < 0 ) scaledAnsValueArray[ArrayIdx] = 0;
+			if( scaledAnsValueArray[ArrayIdx+1] < 0 ) scaledAnsValueArray[ArrayIdx+1] = 0;
+			if( scaledAnsValueArray[ArrayIdx+2] < 0 ) scaledAnsValueArray[ArrayIdx+2] = 0;
 
 			rgbRes->rgbRed = (byte) ( scaledAnsValueArray[ArrayIdx] * 255 );
 			rgbRes->rgbGreen = (byte) ( scaledAnsValueArray[ArrayIdx + 1] * 255);

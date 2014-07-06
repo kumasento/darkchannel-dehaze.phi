@@ -3,6 +3,7 @@ CC = g++ -Wall -fmessage-length=0 -g
 FIVERSION = 3.15.4
 INCLUDE = -I./FreeImageLib/ -I./
 LIBS = -L./FreeImageLib/ -lfreeimage -lfreeimage-$(FIVERSION)
+CV_INC = -I/usr/local/Cellar/opencv/ -I./
 
 freeimage-test:
 	g++ -Wall -I./FreeImageLib/ -L./FreeImageLib/ -lfreeimage -lfreeimage-3.15.4 freeimage-test.cpp -o ./bin/freeimage-test
@@ -25,6 +26,9 @@ dehaze-framework-1a:
 
 dehaze-framework-2a:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-framework-2a.cpp -o ./bin/dehaze-framework-2a.o -g
+
+dehaze-demo-v1:
+	$(CC) $(CV_INC) dehaze-demo-v1.cpp -o ./bin/dehaze-demo-v1.o
 
 dehaze-dark-channel-gen:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-dark-channel-gen.cpp -o ./bin/dehaze-dark-channel-gen.o
