@@ -4,8 +4,8 @@ FIVERSION = 3.15.4
 CVVERSION = 2.4.9
 INCLUDE = -I./FreeImageLib/ -I./
 LIBS = -L./FreeImageLib/ -lfreeimage -lfreeimage-$(FIVERSION)
-CV_INC = -I/usr/local/Cellar/opencv/$(CVVERSION)/include/ -I./
-CV_LIB = -L/usr/local/Cellar/opencv/$(CVVERSION)/lib/
+CV_INC = -I/usr/local/Cellar/opencv/$(CVVERSION)/include/ -I./ -I/usr/local/include/
+CV_LIB = -L/usr/local/Cellar/opencv/$(CVVERSION)/lib/ -L/usr/local/lib/
 
 freeimage-test:
 	g++ -Wall -I./FreeImageLib/ -L./FreeImageLib/ -lfreeimage -lfreeimage-3.15.4 freeimage-test.cpp -o ./bin/freeimage-test
@@ -36,7 +36,13 @@ dehaze-framework-2a:
 dehaze-demo-v1:
 	$(CC) $(CV_INC) $(CV_LIB) \
 	-DOPENCV_SUPPORT \
-	-lopencv_core.$(CVVERSION) -lopencv_imgproc.$(CVVERSION) -lopencv_highgui.$(CVVERSION) \
+	-lopencv_core.$(CVVERSION) -lopencv_imgproc.$(CVVERSION) -lopencv_highgui.$(CVVERSION) -lopencv_video.$(CVVERSION) -lopencv_videostab.$(CVVERSION)  \
+	dehaze-demo-v1.cpp -o ./bin/dehaze-demo-v1.o 
+	
+dehaze-demo-v1-linux:
+	$(CC) $(CV_INC) $(CV_LIB) \
+	-DOPENCV_SUPPORT \
+	-lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video  \
 	dehaze-demo-v1.cpp -o ./bin/dehaze-demo-v1.o 
 
 dehaze-dark-channel-gen:

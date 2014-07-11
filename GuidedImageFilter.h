@@ -97,7 +97,7 @@ int guidedfilter(general_matrix<value_t>& I, general_matrix<value_t>& p, int r, 
 	int hei = p.GetMatrixHeight();
 	int wid = p.GetMatrixWidth();
 
-	printf("hei: %d wid: %d\n", hei, wid);
+	//printf("hei: %d wid: %d\n", hei, wid);
 	general_matrix<value_t> N;
 	general_matrix<value_t> tmp_mat(hei, wid, 1);
 	boxfilter(tmp_mat, N, r);
@@ -109,8 +109,8 @@ int guidedfilter(general_matrix<value_t>& I, general_matrix<value_t>& p, int r, 
 	general_matrix<value_t> tmp_mat2;
 	tmp_mat2.MUL( I, p ); 
 	boxfilter( tmp_mat2, tmp_mat, r );
-	tmp_mat.PRINT();
-	N.PRINT();
+	//tmp_mat.PRINT();
+	//N.PRINT();
 	mean_Ip.DIV( tmp_mat, N );
 
 	tmp_mat.MUL( mean_I, mean_p );

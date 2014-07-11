@@ -9,6 +9,8 @@
  	#include <OpenCVInterfaces.h>
 #endif
 
+#include <deque>
+
 #define DEF_MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define DEF_MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define DEF_XYtoIdx(x, y, l) ((x) * (l) + (y))
@@ -30,18 +32,19 @@ typedef struct{
 	unsigned x, y;
 } hazy_pixel;
 
-int hazy_pixel_cmp(const void* a, const void *b){
-	return ((hazy_pixel*)a)->dc_value - ((hazy_pixel*)b)->dc_value;
-}
 
 class hazy_pixels{
 	public:
 		hazy_pixels();
 		hazy_pixels(const char *file_name)
 		{
-			pixelsLoader(file_name, 0);
+			if(pixelsLoader(file_name, 0))
+				puts("INFO: Loaded");
 			pixelsSetImageBasicInfo();
-			pixelsSetImagePixelArray();
+		}
+		hazy_pixels(cv::Mat& mat){
+			this->CV_IMAGE_MAT = mat;
+			pixelsSetImageBasicInfo();
 		}
 
 		bool pixelsLoader(const char *file_name, int flag);
@@ -56,6 +59,7 @@ class hazy_pixels{
 		unsigned pixelsGetWidth(){ return this->hazy_width; }
 		rgbtuple* pixelsGetRGBTupleByCoord(unsigned x, unsigned y);
 		byte pixelsGetDarkChannelByCoord(unsigned x, unsigned y);
+		void pixelsSetDarkChannelValue();
 		double pixelsGetOriginaltValueByCoord(unsigned x, unsigned y);
 		void pixelsBuildtValueArray(int r, double eps);
 
@@ -64,7 +68,13 @@ class hazy_pixels{
 		void pixelsSaveImageRawOriginalBitmap();
 		void pixelsSaveImageMattedOriginalBitmap(int r, double eps);
 
+		void pixelsCalculate(int r, double eps);
+
 		void pixelsPrintImageInfo();
+
+		cv::Mat CV_IMAGE_RES_MAT;
+		cv::Mat CV_IMAGE_MAT;
+		unsigned hazy_height, hazy_width;
 	private:
 	#ifdef FREE_IMAGE_SUPPORT
 		FIBITMAP *hazy_bitmap;
@@ -72,10 +82,8 @@ class hazy_pixels{
 
 		FREE_IMAGE_COLOR_TYPE hazy_bitmap_color_type;
 		bool hazy_bitmap_available;
-	#elif OPENCV_SUPPORT
-		cv::Mat CV_IMAGE_MAT;
 	#endif
-		unsigned hazy_height, hazy_width;
+		
 		unsigned hazy_patch_size;	
 		std::string hazy_name;
 
@@ -108,6 +116,16 @@ void hazy_pixels::pixelsUnLoader(){
 #ifdef FREE_IMAGE_SUPPORT
 	FIInterfaceUnLoader(this->hazy_bitmap);
 #endif
+}
+
+void hazy_pixels::pixelsSetDarkChannelValue(){
+	int Idx = 0;
+	for(unsigned x = 0; x < this->hazy_height; x++){
+		for(unsigned y = 0; y < this->hazy_width; y++){
+			pixel_array[Idx].dc_value = pixelsGetDarkChannelByCoord(x, y);
+			Idx ++;
+		}
+	}
 }
 
 void hazy_pixels::pixelsSetImagePixelArray(){
@@ -147,9 +165,56 @@ void hazy_pixels::pixelsSetImagePixelArray(){
 			pixel_array[Idx].color_tuple->rgbblue = p[Idx*3];
 			pixel_array[Idx].color_tuple->rgbgreen = p[Idx*3+1];
 			pixel_array[Idx].color_tuple->rgbred = p[Idx*3+2];
+			//printf("Idx: %d %u %u %u\n", Idx, pixel_array[Idx].color_tuple->rgbblue, pixel_array[Idx].color_tuple->rgbred, pixel_array[Idx].color_tuple->rgbgreen);
 			Idx++;
 		}
 	}
+	/** 
+	 * Here use the O(1) algorithm
+	 */
+	// Calculate the min value channel
+	/*
+	int color_min_chn[this->hazy_height][this->hazy_width];
+	for(unsigned x = 0; x < this->hazy_height; x++){
+		for(unsigned y = 0; y < this->hazy_width; y++){
+			int Idx = x * this->hazy_width + y;
+			int min_chn = pixel_array[Idx].color_tuple->rgbred;
+			min_chn = DEF_MIN(min_chn, pixel_array[Idx].color_tuple->rgbgreen);
+			min_chn = DEF_MIN(min_chn, pixel_array[Idx].color_tuple->rgbblue);
+			color_min_chn[x][y] = min_chn;
+		}
+	}
+	puts("INFO: color_min_chn done");
+
+	// Calculate the min sequence (axis-x)
+	int color_min[this->hazy_height][this->hazy_width];
+	unsigned win_size = this->hazy_patch_size;
+	printf("win size %d\n", win_size);
+	for(unsigned x = 0; x < this->hazy_height; x++){
+		std::deque<int> dq;
+		for(unsigned y = 0; y < win_size; y++){
+			while(!dq.empty() && color_min_chn[x][y] <= color_min_chn[x][dq.back()])
+				dq.pop_back();
+			dq.push_back(y);
+
+			color_min[x][y] = color_min_chn[x][dq.front()];
+		}
+		for(unsigned y = win_size; y < this->hazy_width; y++){
+			color_min[x][y] = color_min_chn[x][dq.front()];
+			while(!dq.empty() && color_min_chn[x][y] <= color_min_chn[x][dq.back()])
+				dq.pop_back();
+			while (!dq.empty() && dq.front() <= y - win_size)  
+   	   			dq.pop_front();  
+    		dq.push_back(y);  
+		}
+	}
+	puts("INFO: Calculate the min sequence (axis-x) done");
+
+	//Calculate the min sequence (axis-y)
+	for(unsigned x = 0; x < this->hazy_height; x++){
+		
+	}
+	*/
 #endif
 }
 
@@ -190,138 +255,7 @@ rgbtuple* hazy_pixels::pixelsGetRGBTupleByCoord(unsigned x, unsigned y){
 	return NULL;
 }
 
-void hazy_pixels::pixelsSetImageAtmosphereLightValue(){
-	pixelsSetImagePixelArray();
-	
-	qsort(this->pixel_array, this->hazy_width *
-							 this->hazy_height,
-							 sizeof(this->pixel_array[0]),
-							 hazy_pixel_cmp);
 
-	unsigned array_upper_bound = (unsigned)(0.0001 * 
-											(double) this->hazy_width * 
-												   	 this->hazy_height);
-	if(array_upper_bound == 0) array_upper_bound = DEF_MIN(10, 
-													this->hazy_width *
-													this->hazy_height);
-	
-
-	double red_per = 0.33;
-	double blue_per = 0.33;
-	double green_per = 0.33;
-
-	
-	//Use average result:
-	double itn = 0.0;
-	for(unsigned i = 0; i < array_upper_bound; i++){
-		itn += red_per * this->pixel_array[i].color_tuple->rgbred + 
-			   green_per * this->pixel_array[i].color_tuple->rgbgreen + 
-			   blue_per * this->pixel_array[i].color_tuple->rgbblue;
-	}
-	itn /= array_upper_bound;
-	this->A_value = (rgbtuple *) malloc(sizeof(rgbtuple));
-	this->A_value->rgbred = this->A_value->rgbgreen = this->A_value->rgbblue = itn;
-	
-	printf("A: [%u %u %u]\n",	this->A_value->rgbred,
-								this->A_value->rgbgreen,
-								this->A_value->rgbblue);
-	free(this->pixel_array);
-	return ;
-}
-
-byte hazy_pixels::pixelsGetDarkChannelByCoord(unsigned x, unsigned y){
-	// default is floor
-	unsigned half_patch_size = (unsigned)this->hazy_patch_size / 2;
-	unsigned start_posx, start_posy, end_posx, end_posy;
-	if(this->hazy_patch_size % 2 == 0)
-		half_patch_size --;
-
-	if(x < half_patch_size){ start_posx = 0; end_posx = x + half_patch_size; }
-	else{ start_posx = x - half_patch_size; end_posx = x + half_patch_size; }
-	if(y < half_patch_size){ start_posy = 0; end_posy = y + half_patch_size; }
-	else{ start_posy = y - half_patch_size; end_posy = y + half_patch_size; }
-
-	if(end_posx > this->hazy_width){
-		end_posx = this->hazy_width;
-		start_posx = (start_posx > half_patch_size) ?
-					 start_posx - half_patch_size :
-					 0;
-	}
-	if(end_posy > this->hazy_height){
-		end_posy = this->hazy_height;
-		start_posy = (start_posy > half_patch_size) ?
-					 start_posy - half_patch_size :
-					 0;
-	}
-
-	byte darkChannelValue = DEF_COLOR_VALUE_MAX-1; 
-	for(unsigned tmp_posx = start_posx; tmp_posx < end_posx; tmp_posx++){
-		for(unsigned tmp_posy = start_posy; tmp_posy < end_posy; tmp_posy++){
-			rgbtuple * _rgbtuple = (rgbtuple*) malloc(sizeof(rgbtuple));
-			_rgbtuple = pixelsGetRGBTupleByCoord(tmp_posx, tmp_posy);
-			/*
-			printf("(%u %u): ", tmp_posx, tmp_posy);
-			printf("[%u %u %u]", _rgbtuple->rgbred,
-								 _rgbtuple->rgbgreen,
-							     _rgbtuple->rgbblue);
-			*/
-			byte _darkChannelValue = _rgbtuple->rgbred;
-			_darkChannelValue = DEF_MIN(_rgbtuple->rgbgreen, _darkChannelValue);
-			_darkChannelValue = DEF_MIN(_rgbtuple->rgbblue, _darkChannelValue);
-			darkChannelValue = DEF_MIN(darkChannelValue, _darkChannelValue);
-		}
-	}
-	return darkChannelValue;
-}
-
-double hazy_pixels::pixelsGetOriginaltValueByCoord(unsigned x, unsigned y){
-	unsigned half_patch_size = (unsigned)this->hazy_patch_size / 2;
-	unsigned start_posx, start_posy, end_posx, end_posy;
-	if(this->hazy_patch_size % 2 == 0)
-		half_patch_size --;
-
-	if(x < half_patch_size){ start_posx = 0; end_posx = x + half_patch_size; }
-	else{ start_posx = x - half_patch_size; end_posx = x + half_patch_size; }
-	if(y < half_patch_size){ start_posy = 0; end_posy = y + half_patch_size; }
-	else{ start_posy = y - half_patch_size; end_posy = y + half_patch_size; }
-
-	if(end_posx > this->hazy_width){
-		end_posx = this->hazy_width;
-		start_posx = (start_posx > half_patch_size) ?
-					 start_posx - half_patch_size :
-					 0;
-	}
-	if(end_posy > this->hazy_height){
-		end_posy = this->hazy_height;
-		start_posy = (start_posy > half_patch_size) ?
-					 start_posy - half_patch_size :
-					 0;
-	}
-
-	double tValue = 1.0; 
-	for(unsigned tmp_posx = start_posx; tmp_posx < end_posx; tmp_posx++){
-		for(unsigned tmp_posy = start_posy; tmp_posy < end_posy; tmp_posy++){
-			rgbtuple * _rgbtuple = (rgbtuple*) malloc(sizeof(rgbtuple));
-			_rgbtuple = pixelsGetRGBTupleByCoord(tmp_posx, tmp_posy);
-			/*
-			printf("(%u %u): ", tmp_posx, tmp_posy);
-			printf("[%u %u %u]", _rgbtuple->rgbred,
-								 _rgbtuple->rgbgreen,
-							     _rgbtuple->rgbblue);
-			*/
-			double _tValue = (double)_rgbtuple->rgbred/this->A_value->rgbred;
-			_tValue = DEF_MIN((double)_rgbtuple->rgbgreen/this->A_value->rgbgreen,
-							  _tValue);
-			_tValue = DEF_MIN((double)_rgbtuple->rgbblue/this->A_value->rgbblue, 
-							  _tValue);
-			tValue = DEF_MIN(tValue, _tValue);
-		}
-	}
-
-	//printf("%lf\n", 1-0.95*tValue);
-	
-	return 1 - 0.95*tValue;
-}
 
 void hazy_pixels::pixelsPrintImageInfo(){
 	printf("Image Info:\n");
