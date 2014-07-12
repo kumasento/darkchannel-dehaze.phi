@@ -1,6 +1,8 @@
 #include "GeneralMatrix.h"
 #include "GuidedImageFilter.h"
 
+#include <time.h>
+
 
 int hazy_pixel_cmp(const void* a, const void *b){
 	return (int)((hazy_pixel*)b)->dc_value - (int)((hazy_pixel*)a)->dc_value;
@@ -108,6 +110,7 @@ void hazy_pixels::pixelsBuildtValueArray(int r, double eps)
  */
 
 double hazy_pixels::pixelsGetOriginaltValueByCoord(unsigned x, unsigned y){
+	/*
 	unsigned half_patch_size = (unsigned)this->hazy_patch_size / 2;
 	unsigned start_posx, start_posy, end_posx, end_posy;
 	if(this->hazy_patch_size % 2 == 0)
@@ -142,12 +145,6 @@ double hazy_pixels::pixelsGetOriginaltValueByCoord(unsigned x, unsigned y){
 			rgbtuple * _rgbtuple = this->pixel_array[Idx].color_tuple;
 		#endif
 
-			/*
-			printf("(%u %u): ", tmp_posx, tmp_posy);
-			printf("[%u %u %u]", _rgbtuple->rgbred,
-								 _rgbtuple->rgbgreen,
-							     _rgbtuple->rgbblue);
-			*/
 			double _tValue = (double)_rgbtuple->rgbred/this->A_value->rgbred;
 			_tValue = DEF_MIN((double)_rgbtuple->rgbgreen/this->A_value->rgbgreen,
 							  _tValue);
@@ -156,9 +153,11 @@ double hazy_pixels::pixelsGetOriginaltValueByCoord(unsigned x, unsigned y){
 			tValue = DEF_MIN(tValue, _tValue);
 		}
 	}
-
+	*/
 	//printf("%lf\n", 1-0.95*tValue);
-	
+	int idx  = x * this->hazy_width + y;
+	double dc = this->pixel_array[idx].dc_value;
+	double tValue = dc / this->A_value->rgbred;
 	return 1 - 0.95*tValue;
 }
 
@@ -207,9 +206,21 @@ void hazy_pixels::pixelsSetImageAtmosphereLightValue(){
 							 hazy_pixel_inst_cmp);
 
 	this->A_value = (rgbtuple *) malloc(sizeof(rgbtuple));
+	//2.2.1 Point:
+	/*
 	this->A_value->rgbred = this->pixel_array[0].color_tuple->rgbred;
 	this->A_value->rgbblue = this->pixel_array[0].color_tuple->rgbblue;
 	this->A_value->rgbgreen = this->pixel_array[0].color_tuple->rgbgreen;
+	*/
+	//2.2.2 Average:
+	this->A_value->rgbred = this->pixel_array[0].color_tuple->rgbred;
+	this->A_value->rgbblue = this->pixel_array[0].color_tuple->rgbblue;
+	this->A_value->rgbgreen = this->pixel_array[0].color_tuple->rgbgreen;
+	double av = 0.2126*A_value->rgbred +0.0722*A_value->rgbblue + 0.7152*A_value->rgbgreen;
+	this->A_value->rgbred = av;
+	this->A_value->rgbblue = av;
+	this->A_value->rgbgreen = av;
+
 	/*
 	printf("A: [%u %u %u]\n",	this->A_value->rgbred,
 								this->A_value->rgbgreen,
@@ -278,9 +289,26 @@ byte hazy_pixels::pixelsGetDarkChannelByCoord(unsigned x, unsigned y){
 void hazy_pixels::pixelsCalculate(int r, double eps){
 
 	//std::cout << "INFO: Enter Computation" << std::endl;
+	clock_t start_t, end_t;
+	double duration;
+
+	start_t = clock();
 	this->pixelsSetDarkChannelValue();
+	end_t = clock();
+	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
+	printf("SetDarkChannelValue duration: %f sec\n", duration);
+
+	start_t = clock();
 	this->pixelsSetImageAtmosphereLightValue();
+	end_t = clock();
+	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
+	printf("SetImageAtmosphereLight duration: %f sec\n", duration);
+
+	start_t = clock();
 	this->pixelsBuildtValueArray(r, eps);
+	end_t = clock();
+	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
+	printf("SetBuildtValueArray duration: %f sec\n", duration);
 
 	double *scaledAnsValueArray = (double*) malloc( sizeof(double) *
 													this->hazy_width *

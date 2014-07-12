@@ -18,8 +18,8 @@ void hazy_pixels::pixelsSaveOriginalImage(const char *file_name){
 	cv::Mat saved_image_mat(this->hazy_height, this->hazy_width,  CV_8UC3);
 	int Idx = 0;
 
-	for(unsigned i = 0; i < saved_image_mat.rows; i++){
-		for(unsigned j = 0; j < saved_image_mat.cols; j++){
+	for(int i = 0; i < saved_image_mat.rows; i++){
+		for(int j = 0; j < saved_image_mat.cols; j++){
 			/*
 			printf("(%d %d): ", i, j);
 			printf("(R %3d G %3d B %3d)\n", this->pixel_array[Idx].color_tuple->rgbred,
@@ -142,16 +142,3 @@ void hazy_pixels::pixelsSaveImageDarkChannelBitmap(){
 #endif
 }
 
-
-void hazy_pixels::pixelsSaveImageMattedOriginalBitmap(int r = 30, double eps = 1e-3){
-	char out_file_name[60]; memset(out_file_name, 0, sizeof(out_file_name));
-	sprintf(out_file_name, "%s_2a_transferred_%u_%u.png", 
-													this->hazy_file_name,
-													this->hazy_patch_size,
-													r);
-	
-	this->pixelsCalculate(r, eps);
-
-	OpenCVInterfaces::CVImageSaver(out_file_name, this->CV_IMAGE_RES_MAT);
-	OpenCVInterfaces::CVImageShower(this->CV_IMAGE_RES_MAT);
-}

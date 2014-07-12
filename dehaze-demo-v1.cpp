@@ -64,10 +64,13 @@ int main(int argc, char *argv[]){
 		puts("INFO: Finished setting the [pixel_array]\n");
 		
 		clock_t start = clock();
-		hpixels.pixelsSaveImageMattedOriginalBitmap(r, eps);
+		hpixels.pixelsCalculate(r, eps);
 		clock_t end = clock();
 		double duration = (double)(end-start) / CLOCKS_PER_SEC;
 		printf("1-time duration: %f sec\n", duration);
+		printf("1-time per Mp result: %f sec\n", duration / (hpixels.hazy_width * hpixels.hazy_height / 1e6));
+		OpenCVInterfaces::CVImageSaver("res.png", hpixels.CV_IMAGE_RES_MAT);
+		OpenCVInterfaces::CVImageShower(hpixels.CV_IMAGE_MAT ,hpixels.CV_IMAGE_RES_MAT);
 
 		hpixels.pixelsUnLoader();
 		cout << "INFO: UnLoaded" << endl;

@@ -1,4 +1,5 @@
 CC = g++ -Wall -fmessage-length=0 -g
+ICC = icpc -Wall -fmessage-length=0 -mmic -O3
 
 FIVERSION = 3.15.4
 CVVERSION = 2.4.9
@@ -44,6 +45,12 @@ dehaze-demo-v1-linux:
 	-DOPENCV_SUPPORT \
 	-lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video  \
 	dehaze-demo-v1.cpp -o ./bin/dehaze-demo-v1.o 
+
+phi-dehaze-demo-v1:
+	$(ICC) $(CV_INC) $(CV_LIB) \
+	-DOPENCV_SUPPORT \
+	-lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video  \
+	phi_dehaze_demo_v1.cpp -o ./bin/phi_dehaze_demo_v1.o 
 
 dehaze-dark-channel-gen:
 	$(CC) $(INCLUDE) $(LIBS) dehaze-dark-channel-gen.cpp -o ./bin/dehaze-dark-channel-gen.o

@@ -22,7 +22,7 @@ namespace OpenCVInterfaces
 	bool CVImageLoader(const char * file_name, cv::Mat& CV_IMAGE_MAT);
 	void CVImagePicChecker(const char *file_name);
 	void CVImageSaver(const char *file_name, cv::Mat& CV_IMAGE_MAT);
-	void CVImageShower(cv::Mat& CV_IMAGE_MAT);
+	void CVImageShower(cv::Mat& CV_IMAGE_MAT, cv::Mat& CV_IMAGE_RES_MAT);
 	bool CVVideo2Image(const char * file_name, std::vector<cv::Mat>& CV_FRAMES_MAT, int max_frames );
 	bool CVImage2Video(std::vector<cv::Mat>& CV_FRAMES_RES_MAT, int max_frames);
 }
@@ -65,13 +65,14 @@ void OpenCVInterfaces::CVImagePicChecker(const char *file_name){
 
 void OpenCVInterfaces::CVImageSaver(const char *file_name, cv::Mat& CV_IMAGE_MAT){
 	cv::imwrite(file_name, CV_IMAGE_MAT);
-	printf("INFO: Image \"%s\" saved", file_name);
+	printf("INFO: Image \"%s\" saved\n", file_name);
 	return ;
 }
 
-void OpenCVInterfaces::CVImageShower(cv::Mat& CV_IMAGE_MAT){
+void OpenCVInterfaces::CVImageShower(cv::Mat& CV_IMAGE_MAT, cv::Mat& CV_IMAGE_RES_MAT){
 	cv::namedWindow("Display", cv::WINDOW_AUTOSIZE );
-	cv::imshow("Display", CV_IMAGE_MAT);
+	cv::imshow("original", CV_IMAGE_MAT);
+	cv::imshow("dehaze", CV_IMAGE_RES_MAT);
 	cv::waitKey(0);
 	return ;
 }
