@@ -8,6 +8,12 @@ LIBS = -L./FreeImageLib/ -lfreeimage -lfreeimage-$(FIVERSION)
 CV_INC = -I/usr/local/Cellar/opencv/$(CVVERSION)/include/ -I./ -I/usr/local/include/
 CV_LIB = -L/usr/local/Cellar/opencv/$(CVVERSION)/lib/ -L/usr/local/lib/
 
+filter-1d-test:
+	$(CC) filter_1d_test.cpp -o ./bin/filter-1d-test.o
+
+filter-2d-test:
+	$(CC) filter_2d_test.cpp -o ./bin/filter-2d-test.o
+
 freeimage-test:
 	g++ -Wall -I./FreeImageLib/ -L./FreeImageLib/ -lfreeimage -lfreeimage-3.15.4 freeimage-test.cpp -o ./bin/freeimage-test
 

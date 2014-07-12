@@ -18,8 +18,9 @@ int main(int argc, char *argv[]){
 	double eps = 1e-3;
 	int file_type = 1;
 	int frames_max = 20;
+	int gvar_dc_type = 1;
 
-	while((opt = getopt(argc, argv, "f:iw:r:e:t:g:h")) != -1){
+	while((opt = getopt(argc, argv, "f:iw:r:e:t:g:h:d:")) != -1){
 		switch(opt){
 			case 'f':
 				file_name = string(optarg);
@@ -49,6 +50,9 @@ int main(int argc, char *argv[]){
 			case 'g':
 				frames_max = atoi(optarg);
 				break;
+			case 'd':
+				gvar_dc_type = atoi(optarg);
+				break;
 			default:
 				return 1;
 		}
@@ -57,7 +61,8 @@ int main(int argc, char *argv[]){
 		cout << "INFO: Image Type" << endl;
 		cout << "INFO: Start" << endl;
 		hazy_pixels hpixels(file_name.c_str());
-
+	
+		hpixels.pixelsConfigure(gvar_dc_type);
 		hpixels.pixelsSetImagePatchSize( patch_size );
 		hpixels.pixelsPrintImageInfo();
 		hpixels.pixelsSetImagePixelArray();

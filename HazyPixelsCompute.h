@@ -286,35 +286,7 @@ byte hazy_pixels::pixelsGetDarkChannelByCoord(unsigned x, unsigned y){
 	return darkChannelValue;
 }
 
-void hazy_pixels::pixelsCalculate(int r, double eps){
-
-	//std::cout << "INFO: Enter Computation" << std::endl;
-	clock_t start_t, end_t;
-	double duration;
-
-	start_t = clock();
-	this->pixelsSetDarkChannelValue();
-	end_t = clock();
-	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
-	printf("SetDarkChannelValue duration: %f sec\n", duration);
-
-	start_t = clock();
-	this->pixelsSetImageAtmosphereLightValue();
-	end_t = clock();
-	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
-	printf("SetImageAtmosphereLight duration: %f sec\n", duration);
-
-	start_t = clock();
-	this->pixelsBuildtValueArray(r, eps);
-	end_t = clock();
-	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
-	printf("SetBuildtValueArray duration: %f sec\n", duration);
-
-	double *scaledAnsValueArray = (double*) malloc( sizeof(double) *
-													this->hazy_width *
-													this->hazy_height *
-													3);
-
+void hazy_pixels::pixelsSetResultMat(){
 	//Pass 1: Pre Calculate
 	double scaledAvalue[3] = {(double) this->A_value->rgbred,
 							  (double) this->A_value->rgbgreen,
@@ -373,22 +345,37 @@ void hazy_pixels::pixelsCalculate(int r, double eps){
 		}
 	}
 
-	
-	for(unsigned x = 0; x < this->hazy_height; x++){
-		for(unsigned y = 0; y < this->hazy_width; y++){
-			unsigned ArrayIdx = DEF_XYZtoIdx(x, y, 0, this->hazy_width, 3);
-			for(int idx = 0; idx < 3; idx++){
-				if(scaledAnsValueArray[ArrayIdx+idx] > 255)
-					scaledAnsValueArray[ArrayIdx+idx] = 1;
-				else if( scaledAnsValueArray[ArrayIdx+idx] < 0 ) 
-					scaledAnsValueArray[ArrayIdx+idx] = 0;
-				else
-					scaledAnsValueArray[ArrayIdx+idx] /= 255;
-			}
-
-
-		}
-	}
-
 	this->CV_IMAGE_RES_MAT = saved_image_mat;
+}
+
+void hazy_pixels::pixelsCalculate(int r, double eps){
+
+	//std::cout << "INFO: Enter Computation" << std::endl;
+	clock_t start_t, end_t;
+	double duration;
+
+	start_t = clock();
+	this->pixelsSetDarkChannelValue();
+	end_t = clock();
+	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
+	printf("SetDarkChannelValue duration: %f sec\n", duration);
+
+	start_t = clock();
+	this->pixelsSetImageAtmosphereLightValue();
+	end_t = clock();
+	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
+	printf("SetImageAtmosphereLight duration: %f sec\n", duration);
+
+	start_t = clock();
+	this->pixelsBuildtValueArray(r, eps);
+	end_t = clock();
+	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
+	printf("SetBuildtValueArray duration: %f sec\n", duration);
+
+	start_t = clock();
+	this->pixelsSetResultMat();
+	end_t = clock();
+	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
+	printf("SetResultMat duration: %f sec\n", duration);
+
 }

@@ -24,6 +24,7 @@ hazy_pixels_video::hazy_pixels_video(std::string video_name, int max_frame, int 
 	while(frames_iter != CV_FRAMES_MAT.end()){
 		//puts("New Frame");
 		hazy_pixels tmp_hazy_pixels(*frames_iter);
+		tmp_hazy_pixels.pixelsConfigure(1);
 		tmp_hazy_pixels.pixelsSetImagePatchSize( patch_size );
 		tmp_hazy_pixels.pixelsSetImagePixelArray();
 		//puts("INFO: Finished setting the [pixel_array]");
