@@ -3,7 +3,6 @@
 #include <unistd.h>
 
 #include <HazyPixels.h>
-#include <HazyPixelsSave.h>
 #include <HazyPixelsCompute.h>
 #include <HazyPixelsVideo.h>
 
