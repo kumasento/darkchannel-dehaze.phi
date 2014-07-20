@@ -57,11 +57,17 @@ steps:
 
 1. Compile the .so file:
 	
-	make pydemo_runImg
+		make pydemo_runImg
+
+And if you are using mic, please use:
+
+		make pydemo_runImg_mic
+	
+This one may not work, if any problem, pls let me know
 
 2. Run the script:
 
-	python PyLib/run_pydemo_runImg.py -f [img_file_name] -p [patch_size] -o [out_img_file_name]
-
+		python PyLib/run_pydemo_runImg.py -f [img_file_name] -p [patch_size] -o [out_img_file_name]
+	
 Good Luck,
 Vincent
