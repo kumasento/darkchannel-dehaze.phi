@@ -5,9 +5,11 @@
 #ifdef FREE_IMAGE_SUPPORT
 	#include "FreeImage.h"
 	#include "FreeImageInterfaces.h"
-#elif OPENCV_SUPPORT
+#elif OpenCV_Sprt
  	#include <OpenCVInterfaces.h>
 #endif
+
+#include <MatFmtInterfaces.h>
 
 #include <Filter.h>
 
@@ -39,18 +41,8 @@ class hazy_pixels{
 	public:
 		hazy_pixels();
 		// load from a file. I think this one should be aborted
-		hazy_pixels(const char *file_name)
-		{
-			if(pixelsLoader(file_name, 0))
-				puts("INFO: Loaded");
-			pixelsSetImageBasicInfo();
-		}
-
-		// Load from OpenCV Mat, this one should be aborted also
-		// Load from a data structure that has no relation with the file system or library
-		hazy_pixels(cv::Mat& mat){
-			this->CV_IMAGE_MAT = mat;
-			pixelsSetImageBasicInfo();
+		hazy_pixels(const char *file_name){
+			pixelsLoader(file_name, 0);
 		}
 
 		bool pixelsLoader(const char *file_name, int flag);
@@ -75,98 +67,90 @@ class hazy_pixels{
 		void pixelsSaveImageRawOriginalBitmap();
 		void pixelsSaveImageMattedOriginalBitmap(int r, double eps);
 
-		void pixelsSetResultMat();
-		void pixelsCalculate(int r, double eps);
+		void pixelsSetResultMat(byte* R_arr, byte* G_arr, byte* B_arr);
+		void pixelsSaveResult(const char* out_fl_n, byte* R_arr, byte* G_arr, byte* B_arr);
+		void pixelsCalculate(int r, double eps, byte* R_arr, byte* G_arr, byte* B_arr);
 
 		void pixelsPrintImageInfo();
 
-		void pixelsConfigure(int gvar_dc_type = 0){
-			this->gvar_dc_type = gvar_dc_type;
-		};
-
-		cv::Mat CV_IMAGE_RES_MAT;
-		cv::Mat CV_IMAGE_MAT;
 		unsigned hazy_height, hazy_width;
 		unsigned hazy_pixel_size;
-		//computation configure
-		int gvar_dc_type;
+
 	private:
-	#ifdef FREE_IMAGE_SUPPORT
-		FIBITMAP *hazy_bitmap;
-		BITMAPINFO *hazy_bitmap_info;
-
-		FREE_IMAGE_COLOR_TYPE hazy_bitmap_color_type;
-		bool hazy_bitmap_available;
-	#endif
-		
 		unsigned hazy_patch_size;	
-		std::string hazy_name;
-
 
 		hazy_pixel *pixel_array;
 		rgbtuple *A_value;
 		double *t_value_arr;
-
 };
 
 bool hazy_pixels::pixelsLoader(const char *file_name, int flag = 0){
-	this->hazy_name = std::string(file_name);
-	int str_pos = this->hazy_name.find('.');
-	this->hazy_name = this->hazy_name.substr(0, str_pos);
+	int MatFmt_H, MatFmt_W;
+	if(MatFmt::MatFmtHWLdr(MatFmt_H, MatFmt_W, file_name)){
+		printf("Loaded: Height %d Width %d\n", MatFmt_H, MatFmt_W);
 
-	return OpenCVInterfaces::CVImageLoader(file_name, this->CV_IMAGE_MAT);
+		this->hazy_width = MatFmt_W;
+		this->hazy_height = MatFmt_H;
+		this->hazy_pixel_size = MatFmt_W * MatFmt_H;
+
+		byte* tmp_R_arr = (byte*) MALLOC(sizeof(byte) * MatFmt_H * MatFmt_W);
+		byte* tmp_G_arr = (byte*) MALLOC(sizeof(byte) * MatFmt_H * MatFmt_W);
+		byte* tmp_B_arr = (byte*) MALLOC(sizeof(byte) * MatFmt_H * MatFmt_W);
+
+		if(MatFmt::MatFmtRGBLdr(tmp_R_arr, tmp_G_arr, tmp_B_arr, MatFmt_H, MatFmt_W, file_name)){
+			printf("Loaded: R G B array\n");
+
+			// first step assign the color tuple
+			pixel_array = (hazy_pixel*) MALLOC( sizeof(hazy_pixel) * 
+												this->hazy_width *
+												this->hazy_height);
+			for(unsigned x = 0; x < this->hazy_height; x++){
+				for(unsigned y = 0; y < this->hazy_width; y++){
+					int Idx = x * this->hazy_width + y;
+					pixel_array[Idx].x = x;
+					pixel_array[Idx].y = y;
+					pixel_array[Idx].color_tuple = (rgbtuple*) MALLOC(sizeof(rgbtuple));
+					pixel_array[Idx].color_tuple->rgbblue = tmp_B_arr[Idx];
+					pixel_array[Idx].color_tuple->rgbgreen = tmp_G_arr[Idx];
+					pixel_array[Idx].color_tuple->rgbred = tmp_R_arr[Idx];
+				}
+			}
+		}
+
+		else{
+			puts("ERROR: Cant Load RGB Array");
+			return false;
+		}
+	}
+	else{
+		puts("ERROR: Cant Load H n W");
+		return false;
+	}
+
+	return false;
 }
 
-void hazy_pixels::pixelsUnLoader(){
+void hazy_pixels::pixelsSaveResult(const char* out_fl_n, byte* R_arr, byte* G_arr, byte* B_arr){
+	MatFmt::MatFmtRGBWtr(R_arr, G_arr, B_arr, hazy_height, hazy_width, out_fl_n);
 }
 
 void hazy_pixels::pixelsSetDarkChannelValue(){
-	if(this->gvar_dc_type == 0){
-		int Idx = 0;
-		for(unsigned x = 0; x < this->hazy_height; x++){
-			for(unsigned y = 0; y < this->hazy_width; y++){
-				pixel_array[Idx].dc_value = pixelsGetDarkChannelByCoord(x, y);
-				Idx ++;
-			}
-		}
-	}	
-	else if(this->gvar_dc_type == 1){
-		byte* R_mat = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size); 
-		byte* G_mat = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size); 
-		byte* B_mat = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size); 
+	byte* R_mat = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size); 
+	byte* G_mat = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size); 
+	byte* B_mat = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size); 
 
-		this->pixelsConvertRGBPixelArray(R_mat, G_mat, B_mat);
+	this->pixelsConvertRGBPixelArray(R_mat, G_mat, B_mat);
 
-		byte* input_2d_arr = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size );
-		byte* win_2d_arr = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size );
-		byte* tran_2d_arr = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size );
-		
-		Filter::ComputeMinRGBArray(R_mat, G_mat, B_mat, input_2d_arr, this->hazy_pixel_size);
-		Filter::Compute2DMinWindowFilterArray(input_2d_arr, win_2d_arr, tran_2d_arr, this->hazy_height, this->hazy_width, this->hazy_patch_size/2);
+	byte* input_2d_arr = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size );
+	byte* win_2d_arr = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size );
+	byte* tran_2d_arr = (byte *) MALLOC( sizeof(byte) * this->hazy_pixel_size );
 	
-		for(unsigned x = 0; x < this->hazy_height; x ++)
-			for(unsigned y = 0; y < this->hazy_width; y++)
-				pixel_array[x*this->hazy_width+y].dc_value = tran_2d_arr[y*this->hazy_height+x];
-	}
-}
+	Filter::ComputeMinRGBArray(R_mat, G_mat, B_mat, input_2d_arr, this->hazy_pixel_size);
+	Filter::Compute2DMinWindowFilterArray(input_2d_arr, win_2d_arr, tran_2d_arr, this->hazy_height, this->hazy_width, this->hazy_patch_size/2);
 
-void hazy_pixels::pixelsSetImagePixelArray(){
-	pixel_array = (hazy_pixel*) MALLOC( sizeof(hazy_pixel) * 
-										this->hazy_width *
-										this->hazy_height);
-	elem_t * p = CV_IMAGE_MAT.data;
-
-	for(unsigned x = 0; x < this->hazy_height; x++){
-		for(unsigned y = 0; y < this->hazy_width; y++){
-			int Idx = x * this->hazy_width + y;
-			pixel_array[Idx].x = x;
-			pixel_array[Idx].y = y;
-			pixel_array[Idx].color_tuple = (rgbtuple*) MALLOC(sizeof(rgbtuple));
-			pixel_array[Idx].color_tuple->rgbblue = p[Idx*3];
-			pixel_array[Idx].color_tuple->rgbgreen = p[Idx*3+1];
-			pixel_array[Idx].color_tuple->rgbred = p[Idx*3+2];
-		}
-	}
+	for(unsigned x = 0; x < this->hazy_height; x ++)
+		for(unsigned y = 0; y < this->hazy_width; y++)
+			pixel_array[x*this->hazy_width+y].dc_value = tran_2d_arr[y*this->hazy_height+x];
 }
 
 void hazy_pixels::pixelsConvertRGBPixelArray(byte * R_mat, byte * G_mat, byte * B_mat){
@@ -176,26 +160,4 @@ void hazy_pixels::pixelsConvertRGBPixelArray(byte * R_mat, byte * G_mat, byte * 
 		G_mat[idx] = this->pixel_array[idx].color_tuple->rgbgreen;
 		B_mat[idx] = this->pixel_array[idx].color_tuple->rgbblue;
 	}
-}
-
-/*
- * WARNING: Make sure you have loaded the bitmap
- */
-void hazy_pixels::pixelsSetImageBasicInfo(){
-	this->hazy_height = this->CV_IMAGE_MAT.rows;
-	this->hazy_width = this->CV_IMAGE_MAT.cols;
-	this->hazy_pixel_size = this->hazy_height * this->hazy_width;
-}
-
-rgbtuple* hazy_pixels::pixelsGetRGBTupleByCoord(unsigned x, unsigned y){
-	return NULL;
-}
-
-
-
-void hazy_pixels::pixelsPrintImageInfo(){
-	printf("Image Info:\n");
-	printf("name: %s\n", this->hazy_name.c_str());
-	printf("height: %d width: %d\n", this->hazy_height, this->hazy_width);
-	return ;
 }

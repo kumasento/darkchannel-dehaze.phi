@@ -22,46 +22,6 @@ int hazy_pixel_inst_cmp(const void *a, const void *b){
  */
 void hazy_pixels::pixelsBuildtValueArray(int r, double eps)
 {
-#ifdef FREE_IMAGE_SUPPORT
-	unsigned hei = this->hazy_height, wid = this->hazy_width;
-	printf("%d %d\n", hei, wid);
-	int arr_size = hei * wid;
-	this->t_value_arr = (double *) malloc(sizeof(double) * arr_size);
-	double *gray_I_arr = (double *) malloc(sizeof(double) * arr_size);
-
-	//Pass 1: Set the array
-	for(unsigned x = 0; x < wid; x++){
-		for(unsigned y = 0; y < hei; y++){
-			unsigned t_idx = DEF_XYtoIdx(x, y, hei);
-
-			rgbtuple *tuple = pixelsGetRGBTupleByCoord(x, y);
-			byte Ired = (byte) tuple->rgbred;
-			byte Igreen = (byte) tuple->rgbgreen;
-			byte Iblue = (byte) tuple->rgbblue;
-			
-			this->t_value_arr[t_idx] = (double)pixelsGetOriginaltValueByCoord(x, y);
-			gray_I_arr[t_idx] = (double)(Ired * 30 + Igreen * 59 + Iblue * 11 + 50) / 100;
-		}
-	}
-
-	//Pass 2: Transfer it into a general_matrix
-	general_matrix<double> t_value_mat(wid, hei, this->t_value_arr);
-	general_matrix<double> gray_I_mat(wid, hei, gray_I_arr);
-
-	general_matrix<double> q;
-	guidedfilter(gray_I_mat, t_value_mat, r, eps, q);
-
-	memcpy(this->t_value_arr, q.GetMatrixArray(), arr_size * sizeof(double));
-	double max_t_value = 0.0;
-	for(int idx = 0; idx < arr_size; idx ++)
-		if( this->t_value_arr[idx] > max_t_value )
-			max_t_value = this->t_value_arr[idx];
-	if(max_t_value > 1)
-		for(int idx = 0; idx < arr_size; idx ++)
-			this->t_value_arr[idx] = (this->t_value_arr[idx] / max_t_value) * 1; 
-#elif OPENCV_SUPPORT
-	//Pass 0: Set the basic info.
-
 	unsigned hei = this->hazy_height, wid = this->hazy_width;
 	int arr_size = hei * wid;
 	this->t_value_arr = (double *) malloc(sizeof(double) * arr_size);
@@ -101,7 +61,6 @@ void hazy_pixels::pixelsBuildtValueArray(int r, double eps)
 	guidedfilter(gray_I_mat, t_value_mat, r, eps, q);
 
 	memcpy(this->t_value_arr, q.GetMatrixArray(), arr_size * sizeof(double));
-#endif
 }
 
 /**
@@ -110,51 +69,6 @@ void hazy_pixels::pixelsBuildtValueArray(int r, double eps)
  */
 
 double hazy_pixels::pixelsGetOriginaltValueByCoord(unsigned x, unsigned y){
-	/*
-	unsigned half_patch_size = (unsigned)this->hazy_patch_size / 2;
-	unsigned start_posx, start_posy, end_posx, end_posy;
-	if(this->hazy_patch_size % 2 == 0)
-		half_patch_size --;
-
-	if(x < half_patch_size){ start_posx = 0; end_posx = x + half_patch_size; }
-	else{ start_posx = x - half_patch_size; end_posx = x + half_patch_size; }
-	if(y < half_patch_size){ start_posy = 0; end_posy = y + half_patch_size; }
-	else{ start_posy = y - half_patch_size; end_posy = y + half_patch_size; }
-
-	if(end_posx > this->hazy_height){
-		end_posx = this->hazy_height;
-		start_posx = (start_posx > half_patch_size) ?
-					 start_posx - half_patch_size :
-					 0;
-	}
-	if(end_posy > this->hazy_width){
-		end_posy = this->hazy_width;
-		start_posy = (start_posy > half_patch_size) ?
-					 start_posy - half_patch_size :
-					 0;
-	}
-
-	double tValue = 1.0; 
-	for(unsigned tmp_posx = start_posx; tmp_posx < end_posx; tmp_posx++){
-		for(unsigned tmp_posy = start_posy; tmp_posy < end_posy; tmp_posy++){
-		#ifdef FREE_IMAGE_SUPPORT
-			rgbtuple * _rgbtuple = (rgbtuple*) malloc(sizeof(rgbtuple));
-			_rgbtuple = pixelsGetRGBTupleByCoord(tmp_posx, tmp_posy);
-		#elif OPENCV_SUPPORT
-			int Idx = tmp_posx * this->hazy_width + tmp_posy;
-			rgbtuple * _rgbtuple = this->pixel_array[Idx].color_tuple;
-		#endif
-
-			double _tValue = (double)_rgbtuple->rgbred/this->A_value->rgbred;
-			_tValue = DEF_MIN((double)_rgbtuple->rgbgreen/this->A_value->rgbgreen,
-							  _tValue);
-			_tValue = DEF_MIN((double)_rgbtuple->rgbblue/this->A_value->rgbblue, 
-							  _tValue);
-			tValue = DEF_MIN(tValue, _tValue);
-		}
-	}
-	*/
-	//printf("%lf\n", 1-0.95*tValue);
 	int idx  = x * this->hazy_width + y;
 	double dc = this->pixel_array[idx].dc_value;
 	double tValue = dc / this->A_value->rgbred;
@@ -232,67 +146,12 @@ void hazy_pixels::pixelsSetImageAtmosphereLightValue(){
 	return ;
 }
 
-
-byte hazy_pixels::pixelsGetDarkChannelByCoord(unsigned x, unsigned y){
-	// default is floor
-	unsigned half_patch_size = (unsigned)this->hazy_patch_size / 2;
-	unsigned start_posx, start_posy, end_posx, end_posy;
-	if(this->hazy_patch_size % 2 == 0)
-		half_patch_size --;
-
-	if(x < half_patch_size){ start_posx = 0; end_posx = x + half_patch_size; }
-	else{ start_posx = x - half_patch_size; end_posx = x + half_patch_size; }
-	if(y < half_patch_size){ start_posy = 0; end_posy = y + half_patch_size; }
-	else{ start_posy = y - half_patch_size; end_posy = y + half_patch_size; }
-
-	if(end_posx > this->hazy_height){
-		end_posx = this->hazy_height;
-		start_posx = (start_posx > half_patch_size) ?
-					 start_posx - half_patch_size :
-					 0;
-	}
-	if(end_posy > this->hazy_width){
-		end_posy = this->hazy_width;
-		start_posy = (start_posy > half_patch_size) ?
-					 start_posy - half_patch_size :
-					 0;
-	}
-
-	byte darkChannelValue = DEF_COLOR_VALUE_MAX-1; 
-	for(unsigned tmp_posx = start_posx; tmp_posx < end_posx; tmp_posx++){
-		for(unsigned tmp_posy = start_posy; tmp_posy < end_posy; tmp_posy++){
-		#ifdef FREE_IMAGE_SUPPORT
-			rgbtuple * _rgbtuple = (rgbtuple*) malloc(sizeof(rgbtuple));
-			_rgbtuple = pixelsGetRGBTupleByCoord(tmp_posx, tmp_posy);
-		#elif OPENCV_SUPPORT
-			int Idx = tmp_posx * this->hazy_width + tmp_posy;
-			rgbtuple * _rgbtuple = this->pixel_array[Idx].color_tuple;
-			//printf("%d %u %u %u\n", Idx, this->pixel_array[Idx].color_tuple->rgbred, this->pixel_array[Idx].color_tuple->rgbblue, this->pixel_array[Idx].color_tuple->rgbgreen);
-			//printf("%d %u %u %u\n", Idx, _rgbtuple->rgbred, _rgbtuple->rgbblue, _rgbtuple->rgbgreen);
-		#endif
-
-			/*
-			printf("(%u %u): ", tmp_posx, tmp_posy);
-			printf("[%u %u %u]", _rgbtuple->rgbred,
-								 _rgbtuple->rgbgreen,
-							     _rgbtuple->rgbblue);
-			*/
-			byte _darkChannelValue = _rgbtuple->rgbred;
-			_darkChannelValue = DEF_MIN(_rgbtuple->rgbgreen, _darkChannelValue);
-			_darkChannelValue = DEF_MIN(_rgbtuple->rgbblue, _darkChannelValue);
-			darkChannelValue = DEF_MIN(darkChannelValue, _darkChannelValue);
-		}
-	}
-	return darkChannelValue;
-}
-
-void hazy_pixels::pixelsSetResultMat(){
+void hazy_pixels::pixelsSetResultMat(byte* R_arr, byte* G_arr, byte* B_arr){
 	//Pass 1: Pre Calculate
 	double scaledAvalue[3] = {(double) this->A_value->rgbred,
 							  (double) this->A_value->rgbgreen,
 							  (double) this->A_value->rgbblue};
 
-	cv::Mat saved_image_mat(this->hazy_height, this->hazy_width,  CV_8UC3);
 	for(unsigned x = 0; x < this->hazy_height; x++){
 		for(unsigned y = 0; y < this->hazy_width; y++){
 			unsigned t_idx = DEF_XYtoIdx(x, y, this->hazy_width);
@@ -339,18 +198,18 @@ void hazy_pixels::pixelsSetResultMat(){
 					scaledAnsValue[idx] = scaledAnsValue[idx]/tmp_max * 255;
 			}
 
-			saved_image_mat.at<cv::Vec3b>(x,y)[2] = (byte) ( scaledAnsValue[0]);
-			saved_image_mat.at<cv::Vec3b>(x,y)[1] = (byte) ( scaledAnsValue[1]);
-			saved_image_mat.at<cv::Vec3b>(x,y)[0] = (byte) ( scaledAnsValue[2]);
+			R_arr[t_idx] =(byte) ((int)scaledAnsValue[0]);
+			G_arr[t_idx] =(byte) ((int)scaledAnsValue[1]);
+			B_arr[t_idx] =(byte) ((int)scaledAnsValue[2]);
 		}
 	}
 
-	this->CV_IMAGE_RES_MAT = saved_image_mat;
+	//this->CV_IMAGE_RES_MAT = saved_image_mat;
 }
 
-void hazy_pixels::pixelsCalculate(int r, double eps){
+void hazy_pixels::pixelsCalculate(int r, double eps, byte* R_arr, byte* G_arr, byte* B_arr){
 
-	//std::cout << "INFO: Enter Computation" << std::endl;
+	std::cout << "INFO: Enter Computation" << std::endl;
 	clock_t start_t, end_t;
 	double duration;
 
@@ -373,7 +232,7 @@ void hazy_pixels::pixelsCalculate(int r, double eps){
 	printf("SetBuildtValueArray duration: %f sec\n", duration);
 
 	start_t = clock();
-	this->pixelsSetResultMat();
+	this->pixelsSetResultMat(R_arr, G_arr, B_arr);
 	end_t = clock();
 	duration = (double)(end_t-start_t) / CLOCKS_PER_SEC;
 	printf("SetResultMat duration: %f sec\n", duration);

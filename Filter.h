@@ -6,6 +6,8 @@
 
 #include <deque>
 
+#define THREAD_NUM 240
+
 typedef unsigned char f_byte;
 
 namespace Filter{
@@ -25,12 +27,28 @@ namespace Filter{
  */
 void Filter::ComputeMinRGBArray(f_byte* R_arr, f_byte* G_arr, f_byte* B_arr, f_byte* out_arr, int arr_size)
 {
+#ifdef __MIC__
+#pragma omp parallel default(shared) num_threads(THREAD_NUM)
+	{
+		int id = omp_get_thread_num();
+		int st_idx = id * arr_size / THREAD_NUM;
+
+		for(int idx = st_idx; idx < arr_size && idx < (st_idx + arr_size / THREAD_NUM); idx ++){
+			int R = R_arr[idx], G = G_arr[idx], B = B_arr[idx];
+			int M = (R < G) ? R : G;
+			M = (M < B) ? M : B;
+			out_arr[idx] = M;
+		}
+	}
+
+#else
 	for(int idx = 0; idx < arr_size; idx ++){
 		int R = R_arr[idx], G = G_arr[idx], B = B_arr[idx];
 		int M = (R < G) ? R : G;
 		M = (M < B) ? M : B;
 		out_arr[idx] = M;
 	}
+#endif
 }
 
 template<typename T>
@@ -83,9 +101,20 @@ void Filter::ComputeMinWindowFilterArray(T* input_arr, T* value_arr, int arr_siz
 template<typename T>
 void Filter::Compute2DMinWindowFilterArray(T *input_2d_arr, T* win_2d_arr, T* tran_2d_arr, int hei, int wid, int hf_w_sz)
 {
+#ifdef __MIC__
+#pragma omp parallel default(shared) num_threads(THREAD_NUM)
+	{
+		int id = omp_get_thread_num();
+		int per_thr = hei / THREAD_NUM;
+
+		for(int bias = per_thr * id * wid; bias < (per_thr * (id+1) * wid) && bias < hei*wid; bias += wid)
+			Filter::ComputeMinWindowFilterArray(input_2d_arr+bias, win_2d_arr+bias, wid, hf_w_sz);
+	}
+#else
 	for(int bias = 0; bias < hei * wid; bias += wid){
 		Filter::ComputeMinWindowFilterArray(input_2d_arr+bias, win_2d_arr+bias, wid, hf_w_sz);
 	}
+#endif
 	for(int y = 0; y < wid; y++){
 		int x_bias = y * hei;
 		for(int i = 0; i < hei; i++)

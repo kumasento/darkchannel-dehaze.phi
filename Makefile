@@ -29,6 +29,11 @@ freeimage-load-output-demo:
 freeimage-imageinfo-demo:
 	$(CC) $(INCLUDE) $(LIBS) freeimage-imageinfo-demo.cpp -o ./bin/freeimage-imageinfo-demo.o
 
+pydemo_runImg:
+	$(CC) pydemo_runImg.cpp -I./ -fPIC -shared -o PyLib/pyRunImg.so
+
+pydemo_runImg_mic:
+	icpc pydemo_runImg.cpp -I./ -fPIC -shared -o PyLib/pyRunImg.so 
 
 dehaze-framework-1a:
 	-DFREE_IMAGE_SUPPORT \
