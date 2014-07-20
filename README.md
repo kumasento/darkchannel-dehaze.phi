@@ -47,3 +47,21 @@ And the result will be named : `[file_name]transferred_[patch_size]`
 Good Luck
 Vincent
 
+###2014-07-20:
+
+Add Python OpenCV Support
+
+Please check whether your host support the pyOpenCV, if not, view this [website](http://docs.opencv.org/trunk/doc/py_tutorials/py_setup/py_setup_in_fedora/py_setup_in_fedora.html)
+
+steps:
+
+1. Compile the .so file:
+	
+	make pydemo_runImg
+
+2. Run the script:
+
+	python PyLib/run_pydemo_runImg.py -f [img_file_name] -p [patch_size] -o [out_img_file_name]
+
+Good Luck,
+Vincent
